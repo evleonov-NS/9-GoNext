@@ -92,7 +92,21 @@ export async function updatePlace(
 
 export async function deletePlace(db: SQLiteDatabase, id: number): Promise<void> {
   await enableForeignKeys(db);
-  await db.runAsync('DELETE FROM places WHERE id = ?', id);
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM trip_idea_places WHERE place_id = ?', id);
+    await db.runAsync('DELETE FROM trip_places WHERE place_id = ?', id);
+    await db.runAsync('UPDATE photos SET place_id = NULL WHERE place_id = ?', id);
+    await db.runAsync('DELETE FROM places WHERE id = ?', id);
+  });
+}
+
+/** ID мест, у которых есть хотя бы одно посещение (TripPlace.status = visited). */
+export async function getVisitedPlaceIds(db: SQLiteDatabase): Promise<Set<number>> {
+  await enableForeignKeys(db);
+  const rows = await db.getAllAsync<{ place_id: number }>(
+    `SELECT DISTINCT place_id FROM trip_places WHERE status = 'visited'`
+  );
+  return new Set(rows.map((r) => r.place_id));
 }
 
 export async function countPlaces(db: SQLiteDatabase): Promise<number> {

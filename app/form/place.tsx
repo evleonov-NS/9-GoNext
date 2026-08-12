@@ -1,87 +1,408 @@
-import { StyleSheet, TextInput, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
+import { Snackbar, Text } from 'react-native-paper';
+import { useSQLiteContext } from 'expo-sqlite';
 import { CategoryIcon } from '@/components/CategoryIcon';
-import { StubScreen } from '@/components/StubScreen';
-import { PLACE_CATEGORY_LIST } from '@/constants/categories';
+import { BackButton } from '@/components/chrome';
+import { Screen } from '@/components/Screen';
+import {
+  PLACE_CATEGORY_LIST,
+  type PlaceCategoryId,
+} from '@/constants/categories';
 import { colors, radii } from '@/constants/theme';
+import { createPlace, getPlaceById, updatePlace } from '@/repositories/placesRepository';
+import type { PlaceInput } from '@/types';
+import { formatCoords, parseCoord } from '@/utils/coords';
 
 export default function FormPlaceScreen() {
+  const router = useRouter();
+  const db = useSQLiteContext();
+  const params = useLocalSearchParams<{ id?: string }>();
+  const editId = params.id ? Number(params.id) : null;
+  const isEdit = editId != null && Number.isFinite(editId);
+
+  const [loading, setLoading] = useState(isEdit);
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState('');
+  const [city, setCity] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState<PlaceCategoryId>('sight');
+  const [lat, setLat] = useState('');
+  const [lng, setLng] = useState('');
+  const [visitLater, setVisitLater] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isEdit || editId == null) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const place = await getPlaceById(db, editId);
+        if (cancelled) return;
+        if (!place) {
+          Alert.alert('Место не найдено');
+          router.back();
+          return;
+        }
+        setName(place.name);
+        setCity(place.city ?? '');
+        setDescription(place.description ?? '');
+        setCategory(place.category);
+        setLat(place.latitude != null ? String(place.latitude) : '');
+        setLng(place.longitude != null ? String(place.longitude) : '');
+        setVisitLater(place.visitLater);
+        setLiked(place.liked);
+      } catch (e) {
+        console.error(e);
+        Alert.alert('Не удалось загрузить место');
+        router.back();
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [db, editId, isEdit, router]);
+
+  const buildInput = useCallback((): PlaceInput | null => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      Alert.alert('Нужно название', 'Укажите название места.');
+      return null;
+    }
+    const latitude = parseCoord(lat);
+    const longitude = parseCoord(lng);
+    if ((lat.trim() || lng.trim()) && (latitude == null || longitude == null)) {
+      Alert.alert('Координаты', 'Широта и долгота должны быть числами, либо оба поля пустые.');
+      return null;
+    }
+    if (latitude != null && (latitude < -90 || latitude > 90)) {
+      Alert.alert('Координаты', 'Широта должна быть от −90 до 90.');
+      return null;
+    }
+    if (longitude != null && (longitude < -180 || longitude > 180)) {
+      Alert.alert('Координаты', 'Долгота должна быть от −180 до 180.');
+      return null;
+    }
+    return {
+      name: trimmed,
+      city: city.trim() || null,
+      description: description.trim() || null,
+      category,
+      latitude,
+      longitude,
+      visitLater,
+      liked,
+    };
+  }, [name, city, description, category, lat, lng, visitLater, liked]);
+
+  const onSave = async () => {
+    const input = buildInput();
+    if (!input) return;
+    setSaving(true);
+    try {
+      if (isEdit && editId != null) {
+        await updatePlace(db, editId, input);
+        router.replace({ pathname: '/place/[id]', params: { id: String(editId) } });
+      } else {
+        const place = await createPlace(db, input);
+        router.replace({ pathname: '/place/[id]', params: { id: String(place.id) } });
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось сохранить');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onCopyCoords = async () => {
+    const latitude = parseCoord(lat);
+    const longitude = parseCoord(lng);
+    if (latitude == null || longitude == null) {
+      Alert.alert('Нет координат', 'Сначала укажите широту и долготу.');
+      return;
+    }
+    await Clipboard.setStringAsync(formatCoords(latitude, longitude));
+    setToast('Координаты скопированы');
+  };
+
+  if (loading) {
+    return (
+      <Screen>
+        <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
+      </Screen>
+    );
+  }
+
   return (
-    <StubScreen
-      eyebrow="Новое место"
-      title="Что хочу посетить"
-      body="Форма-заготовка · запись в БД — этап 3."
-    >
-      <TextInput
-        placeholder="Название"
-        placeholderTextColor={colors.textMuted}
-        style={styles.input}
-      />
-      <TextInput
-        placeholder="Город"
-        placeholderTextColor={colors.textMuted}
-        style={styles.input}
-      />
-      <Text style={styles.label}>Категория</Text>
-      <View style={styles.cats}>
-        {PLACE_CATEGORY_LIST.map((cat) => (
-          <View key={cat.id} style={styles.cat}>
-            <CategoryIcon category={cat.id} size={40} />
-            <Text style={styles.catLabel}>{cat.shortLabel}</Text>
-          </View>
-        ))}
+    <Screen>
+      <View style={styles.header}>
+        <BackButton onPress={() => router.back()} />
+        <Text style={styles.title}>{isEdit ? 'Редактирование' : 'Новое место'}</Text>
       </View>
-      <View style={styles.submit}>
-        <Text style={styles.submitText}>Сохранить</Text>
+
+      <View style={styles.card}>
+        <Text style={styles.label}>НАЗВАНИЕ</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Например, Гранд-базар"
+          placeholderTextColor={colors.textMuted}
+          style={styles.input}
+        />
+
+        <Text style={styles.label}>ГОРОД ИЛИ РЕГИОН</Text>
+        <TextInput
+          value={city}
+          onChangeText={setCity}
+          placeholder="Карелия"
+          placeholderTextColor={colors.textMuted}
+          style={styles.input}
+        />
+
+        <Text style={styles.label}>ОПИСАНИЕ — НЕОБЯЗАТЕЛЬНО</Text>
+        <TextInput
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Коротко, зачем сюда"
+          placeholderTextColor={colors.textMuted}
+          style={[styles.input, styles.textarea]}
+          multiline
+          textAlignVertical="top"
+        />
+
+        <Text style={[styles.label, { marginBottom: 10 }]}>КАТЕГОРИЯ</Text>
+        <View style={styles.cats}>
+          {PLACE_CATEGORY_LIST.map((cat) => {
+            const active = category === cat.id;
+            return (
+              <Pressable
+                key={cat.id}
+                onPress={() => setCategory(cat.id)}
+                style={[
+                  styles.cat,
+                  {
+                    backgroundColor: active ? cat.bg : colors.surface,
+                    borderColor: active ? cat.fg : colors.border,
+                  },
+                ]}
+              >
+                <CategoryIcon category={cat.id} size={40} />
+                <Text style={[styles.catLabel, { color: active ? cat.fg : colors.textSecondary }]}>
+                  {cat.shortLabel}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Text style={styles.label}>КООРДИНАТЫ — НЕОБЯЗАТЕЛЬНО</Text>
+        <View style={styles.coordsRow}>
+          <TextInput
+            value={lat}
+            onChangeText={setLat}
+            placeholder="62.267500"
+            placeholderTextColor={colors.textMuted}
+            style={[styles.input, styles.coordInput]}
+            keyboardType="decimal-pad"
+            autoCapitalize="none"
+          />
+          <TextInput
+            value={lng}
+            onChangeText={setLng}
+            placeholder="33.980800"
+            placeholderTextColor={colors.textMuted}
+            style={[styles.input, styles.coordInput]}
+            keyboardType="decimal-pad"
+            autoCapitalize="none"
+          />
+        </View>
+        <Pressable style={styles.secondaryBtn} onPress={() => void onCopyCoords()}>
+          <Text style={styles.secondaryBtnText}>Скопировать координаты для навигатора</Text>
+        </Pressable>
+
+        <View style={styles.flags}>
+          <Pressable
+            style={[styles.flag, visitLater && styles.flagActive]}
+            onPress={() => setVisitLater((v) => !v)}
+          >
+            <Text style={[styles.flagText, visitLater && styles.flagTextActive]}>
+              Хочу посетить
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.flag, liked && styles.flagActive]}
+            onPress={() => setLiked((v) => !v)}
+          >
+            <Text style={[styles.flagText, liked && styles.flagTextActive]}>Понравилось</Text>
+          </Pressable>
+        </View>
+
+        <Pressable
+          style={[styles.submit, saving && styles.submitDisabled]}
+          onPress={() => void onSave()}
+          disabled={saving}
+        >
+          <Text style={styles.submitText}>
+            {saving ? 'Сохраняем…' : 'Сохранить место'}
+          </Text>
+        </Pressable>
       </View>
-    </StubScreen>
+
+      <Snackbar
+        visible={toast != null}
+        onDismiss={() => setToast(null)}
+        duration={2200}
+        style={styles.snack}
+      >
+        {toast}
+      </Snackbar>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 18,
+  },
+  title: {
+    flex: 1,
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    color: colors.text,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.xxl,
+    padding: 18,
+  },
+  label: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: colors.textMuted,
+    marginBottom: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
     borderRadius: radii.md,
     paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 14,
+    paddingVertical: 15,
+    fontSize: 15,
     color: colors.text,
-    marginBottom: 10,
+    marginBottom: 14,
   },
-  label: {
-    marginTop: 6,
-    marginBottom: 10,
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.textSecondary,
+  textarea: {
+    minHeight: 88,
+    paddingTop: 14,
   },
   cats: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
+    marginBottom: 16,
   },
   cat: {
-    width: 72,
+    width: '23%',
+    minWidth: 72,
+    flexGrow: 1,
     alignItems: 'center',
     gap: 6,
+    borderRadius: radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
   },
   catLabel: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
-    color: colors.textSecondary,
     textAlign: 'center',
   },
+  coordsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  coordInput: {
+    flex: 1,
+    fontFamily: 'monospace',
+    fontSize: 14,
+  },
+  secondaryBtn: {
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radii.md,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginBottom: 14,
+    backgroundColor: colors.surface,
+  },
+  secondaryBtnText: {
+    fontWeight: '800',
+    fontSize: 12.5,
+    color: colors.textStrong,
+  },
+  flags: {
+    flexDirection: 'row',
+    gap: 9,
+    marginBottom: 8,
+  },
+  flag: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radii.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+  },
+  flagActive: {
+    backgroundColor: colors.accentMuted,
+    borderColor: colors.accentMuted,
+  },
+  flagText: {
+    fontWeight: '800',
+    fontSize: 13,
+    color: colors.text,
+  },
+  flagTextActive: {
+    color: colors.accent,
+  },
   submit: {
-    marginTop: 20,
+    marginTop: 10,
     backgroundColor: colors.accent,
     borderRadius: radii.md,
-    paddingVertical: 15,
+    paddingVertical: 16,
     alignItems: 'center',
+  },
+  submitDisabled: {
+    opacity: 0.7,
   },
   submitText: {
     fontWeight: '800',
+    fontSize: 14,
     color: colors.textOnAccent,
+  },
+  snack: {
+    backgroundColor: colors.accentDark,
   },
 });

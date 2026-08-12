@@ -104,20 +104,39 @@ type PlaceRowProps = {
   name: string;
   city: string;
   category: PlaceCategoryId;
+  liked?: boolean;
   onPress?: () => void;
+  onToggleLiked?: () => void;
 };
 
-export function PlaceRow({ name, city, category, onPress }: PlaceRowProps) {
+export function PlaceRow({
+  name,
+  city,
+  category,
+  liked = false,
+  onPress,
+  onToggleLiked,
+}: PlaceRowProps) {
   const cat = PLACE_CATEGORIES[category];
+  const meta = city ? `${city} · ${cat.shortLabel}` : cat.shortLabel;
   return (
     <Pressable style={styles.placeRow} onPress={onPress}>
       <CategoryIcon category={category} size={44} />
       <View style={styles.placeText}>
         <Text style={styles.placeName}>{name}</Text>
-        <Text style={styles.placeMeta}>
-          {city} · {cat.shortLabel}
-        </Text>
+        <Text style={styles.placeMeta}>{meta}</Text>
       </View>
+      {onToggleLiked ? (
+        <Pressable
+          style={[styles.heartBtn, liked && styles.heartBtnActive]}
+          onPress={onToggleLiked}
+          hitSlop={8}
+        >
+          <Text style={[styles.heartText, liked && styles.heartTextActive]}>
+            {liked ? '♥' : '♡'}
+          </Text>
+        </Pressable>
+      ) : null}
     </Pressable>
   );
 }
@@ -318,6 +337,27 @@ const styles = StyleSheet.create({
     marginTop: 3,
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  heartBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heartBtnActive: {
+    backgroundColor: '#fdeef2',
+    borderColor: '#f0d4dc',
+  },
+  heartText: {
+    fontSize: 14,
+    color: colors.textMuted,
+  },
+  heartTextActive: {
+    color: '#8d3f57',
   },
   tripRow: {
     backgroundColor: colors.surface,

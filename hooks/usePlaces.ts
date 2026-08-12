@@ -1,17 +1,28 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import type { Place } from '@/types';
-import { getAllPlaces } from '@/repositories/placesRepository';
+import type { Place, PlaceInput } from '@/types';
+import {
+  createPlace,
+  deletePlace,
+  getAllPlaces,
+  getVisitedPlaceIds,
+  updatePlace,
+} from '@/repositories/placesRepository';
 
-/** Простая загрузка списка мест из SQLite (этап 2 — проверка слоя данных). */
 export function usePlaces(): {
   places: Place[];
+  visitedIds: Set<number>;
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  create: (input: PlaceInput) => Promise<Place>;
+  update: (id: number, input: Partial<PlaceInput>) => Promise<Place>;
+  remove: (id: number) => Promise<void>;
 } {
   const db = useSQLiteContext();
   const [places, setPlaces] = useState<Place[]>([]);
+  const [visitedIds, setVisitedIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,9 +30,9 @@ export function usePlaces(): {
     setLoading(true);
     setError(null);
     try {
-      const rows = await getAllPlaces(db);
+      const [rows, visited] = await Promise.all([getAllPlaces(db), getVisitedPlaceIds(db)]);
       setPlaces(rows);
-      console.log(`[GoNext] places via repository: ${rows.length}`);
+      setVisitedIds(visited);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Ошибка чтения places';
       setError(message);
@@ -31,9 +42,37 @@ export function usePlaces(): {
     }
   }, [db]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh])
+  );
 
-  return { places, loading, error, refresh };
+  const create = useCallback(
+    async (input: PlaceInput) => {
+      const place = await createPlace(db, input);
+      await refresh();
+      return place;
+    },
+    [db, refresh]
+  );
+
+  const update = useCallback(
+    async (id: number, input: Partial<PlaceInput>) => {
+      const place = await updatePlace(db, id, input);
+      await refresh();
+      return place;
+    },
+    [db, refresh]
+  );
+
+  const remove = useCallback(
+    async (id: number) => {
+      await deletePlace(db, id);
+      await refresh();
+    },
+    [db, refresh]
+  );
+
+  return { places, visitedIds, loading, error, refresh, create, update, remove };
 }

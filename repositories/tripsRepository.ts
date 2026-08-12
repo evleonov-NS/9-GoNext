@@ -193,3 +193,18 @@ export async function countTrips(db: SQLiteDatabase): Promise<number> {
   const row = await db.getFirstAsync<{ c: number }>('SELECT COUNT(*) AS c FROM trips');
   return row?.c ?? 0;
 }
+
+/** Поездки, в маршрут которых входит данное место. */
+export async function getTripsForPlace(db: SQLiteDatabase, placeId: number): Promise<Trip[]> {
+  await enableForeignKeys(db);
+  const rows = await db.getAllAsync<TripRow>(
+    `SELECT t.* FROM trips t
+     INNER JOIN trip_places tp ON tp.trip_id = t.id
+     WHERE tp.place_id = ?
+     ORDER BY
+       CASE t.status WHEN 'active' THEN 0 WHEN 'planned' THEN 1 ELSE 2 END,
+       t.start_date IS NULL, t.start_date DESC`,
+    placeId
+  );
+  return rows.map(mapTrip);
+}
