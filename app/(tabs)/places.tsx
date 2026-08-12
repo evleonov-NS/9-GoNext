@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PlaceRow } from '@/components/cards';
 import { CategoryIcon } from '@/components/CategoryIcon';
@@ -7,24 +7,29 @@ import { Screen } from '@/components/Screen';
 import { FilterChip, PageTitle } from '@/components/ui';
 import { PLACE_CATEGORY_LIST } from '@/constants/categories';
 import { colors, radii } from '@/constants/theme';
+import { usePlaces } from '@/hooks/usePlaces';
 import { Text } from 'react-native-paper';
 
 const PLACE_TABS = ['Все', 'Хочу посетить', 'Посещённые', 'Понравилось'] as const;
 
-const DEMO_PLACES = [
-  { id: 'kivach', name: 'Водопад Кивач', city: 'Карелия', category: 'nature' as const },
-  { id: 'ruskeala', name: 'Горный парк Рускеала', city: 'Карелия', category: 'nature' as const },
-  { id: 'kizhi', name: 'Музей-заповедник Кижи', city: 'Карелия', category: 'museum' as const },
-  { id: 'castle', name: 'Выборгский замок', city: 'Выборг', category: 'sight' as const },
-  { id: 'monrepo', name: 'Парк Монрепо', city: 'Выборг', category: 'walk' as const },
-  { id: 'sampo', name: 'Гора Сампо', city: 'Карелия', category: 'nature' as const },
-  { id: 'pier', name: 'Набережная Онежского', city: 'Петрозаводск', category: 'walk' as const },
-];
-
 export default function PlacesScreen() {
   const router = useRouter();
+  const { places, loading, error } = usePlaces();
   const [tab, setTab] = useState<(typeof PLACE_TABS)[number]>('Все');
   const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return places.filter((place) => {
+      if (tab === 'Хочу посетить' && !place.visitLater) return false;
+      if (tab === 'Понравилось' && !place.liked) return false;
+      // «Посещённые» полноценно — на этапе 3 (через TripPlace); пока не режем список
+      if (q && !place.name.toLowerCase().includes(q) && !(place.city ?? '').toLowerCase().includes(q)) {
+        return false;
+      }
+      return true;
+    });
+  }, [places, search, tab]);
 
   return (
     <Screen tabBarPadding>
@@ -65,19 +70,26 @@ export default function PlacesScreen() {
         ))}
       </ScrollView>
 
-      <View style={styles.list}>
-        {DEMO_PLACES.map((place) => (
-          <PlaceRow
-            key={place.id}
-            name={place.name}
-            city={place.city}
-            category={place.category}
-            onPress={() =>
-              router.push({ pathname: '/place/[id]', params: { id: place.id } })
-            }
-          />
-        ))}
-      </View>
+      {loading ? (
+        <ActivityIndicator color={colors.accent} style={styles.loader} />
+      ) : error ? (
+        <Text style={styles.error}>{error}</Text>
+      ) : (
+        <View style={styles.list}>
+          <Text style={styles.meta}>SQLite · {filtered.length} из {places.length}</Text>
+          {filtered.map((place) => (
+            <PlaceRow
+              key={place.id}
+              name={place.name}
+              city={place.city ?? ''}
+              category={place.category}
+              onPress={() =>
+                router.push({ pathname: '/place/[id]', params: { id: String(place.id) } })
+              }
+            />
+          ))}
+        </View>
+      )}
     </Screen>
   );
 }
@@ -122,5 +134,19 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 10,
+  },
+  meta: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  loader: {
+    marginTop: 24,
+  },
+  error: {
+    marginTop: 16,
+    color: '#b42318',
+    fontWeight: '600',
   },
 });

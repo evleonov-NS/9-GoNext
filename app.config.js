@@ -30,7 +30,7 @@ module.exports = {
     output: 'single',
     favicon: './assets/images/favicon.png',
   },
-  plugins: ['expo-router'],
+  plugins: ['expo-router', 'expo-sqlite'],
   experiments: {
     typedRoutes: true,
   },
