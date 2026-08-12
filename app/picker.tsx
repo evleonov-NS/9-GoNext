@@ -21,6 +21,11 @@ import {
   getTripIdeaById,
   getTripIdeaPlaceIds,
 } from '@/repositories/tripIdeasRepository';
+import {
+  addTripPlacesBulk,
+  getTripById,
+  getTripPlaceIds,
+} from '@/repositories/tripsRepository';
 import type { Place } from '@/types';
 import { textMatchesQuery } from '@/utils/keyboardLayout';
 
@@ -30,6 +35,7 @@ export default function PickerScreen() {
   const params = useLocalSearchParams<{ mode?: string; ideaId?: string; tripId?: string }>();
   const mode = params.mode === 'trip' ? 'trip' : 'idea';
   const ideaId = params.ideaId ? Number(params.ideaId) : null;
+  const tripId = params.tripId ? Number(params.tripId) : null;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,7 +43,7 @@ export default function PickerScreen() {
   const [excluded, setExcluded] = useState<Set<number>>(new Set());
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState('');
-  const [targetLabel, setTargetLabel] = useState('В идею');
+  const [targetLabel, setTargetLabel] = useState('В список');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,8 +64,20 @@ export default function PickerScreen() {
         setExcluded(taken);
         setSelected(new Set());
       } else {
-        Alert.alert('Поездки', 'Picker для поездки подключится на этапе 5.');
-        router.back();
+        if (tripId == null || !Number.isFinite(tripId)) {
+          Alert.alert('Нет поездки', 'Откройте picker из карточки поездки.');
+          router.back();
+          return;
+        }
+        const trip = await getTripById(db, tripId);
+        setTargetLabel(trip ? `В поездку «${trip.title}»` : 'В поездку');
+        const [all, taken] = await Promise.all([
+          getAllPlaces(db),
+          getTripPlaceIds(db, tripId),
+        ]);
+        setPlaces(all);
+        setExcluded(taken);
+        setSelected(new Set());
       }
     } catch (e) {
       console.error(e);
@@ -68,7 +86,7 @@ export default function PickerScreen() {
     } finally {
       setLoading(false);
     }
-  }, [db, ideaId, mode, router]);
+  }, [db, ideaId, mode, router, tripId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -97,12 +115,21 @@ export default function PickerScreen() {
   };
 
   const onConfirm = async () => {
-    if (selected.size === 0 || ideaId == null) return;
+    if (selected.size === 0) return;
     setSaving(true);
     try {
-      const n = await addTripIdeaPlacesBulk(db, ideaId, [...selected]);
-      if (n === 0) {
-        Alert.alert('Уже добавлено', 'Выбранные места уже есть в идее.');
+      if (mode === 'idea') {
+        if (ideaId == null) return;
+        const n = await addTripIdeaPlacesBulk(db, ideaId, [...selected]);
+        if (n === 0) {
+          Alert.alert('Уже добавлено', 'Выбранные места уже есть в идее.');
+        }
+      } else {
+        if (tripId == null) return;
+        const n = await addTripPlacesBulk(db, tripId, [...selected]);
+        if (n === 0) {
+          Alert.alert('Уже добавлено', 'Выбранные места уже есть в поездке.');
+        }
       }
       router.back();
     } catch (e) {

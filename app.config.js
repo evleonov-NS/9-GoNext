@@ -30,7 +30,7 @@ module.exports = {
     output: 'single',
     favicon: './assets/images/favicon.png',
   },
-  plugins: ['expo-router', 'expo-sqlite'],
+  plugins: ['expo-router', 'expo-sqlite', '@react-native-community/datetimepicker'],
   experiments: {
     typedRoutes: true,
   },

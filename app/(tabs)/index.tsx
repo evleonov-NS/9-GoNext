@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { ActiveTripCard, IdeaCard, PlaceRow } from '@/components/cards';
@@ -7,6 +7,11 @@ import { Screen } from '@/components/Screen';
 import { PageTitle, SectionHeader } from '@/components/ui';
 import { useAddSheet } from '@/components/AddSheetContext';
 import { colors, radii } from '@/constants/theme';
+import { addDays, toDateOnly } from '@/database/helpers';
+import { useHomeTrips } from '@/hooks/useHomeTrips';
+import type { Trip } from '@/types';
+import { formatTripDates } from '@/utils/tripLabels';
+import { tripDurationDays, todayDateOnly } from '@/utils/tripDates';
 
 function formatToday() {
   return new Date().toLocaleDateString('ru-RU', {
@@ -15,10 +20,74 @@ function formatToday() {
   });
 }
 
-/** Статичный макет Главной — структура как в прототипе (без БД). */
+function dayLabelForActive(trip: Trip): string {
+  if (!trip.startDate || !trip.endDate) return 'в пути';
+  const duration = tripDurationDays(trip.startDate, trip.endDate);
+  if (!duration) return 'в пути';
+  const today = todayDateOnly();
+  const startParts = trip.startDate.split('-').map(Number);
+  const start = new Date(startParts[0], startParts[1] - 1, startParts[2]);
+  let day = 1;
+  for (let i = 0; i < duration; i++) {
+    const d = toDateOnly(addDays(start, i));
+    if (d === today) {
+      day = i + 1;
+      break;
+    }
+    if (d < today) day = i + 1;
+  }
+  return `День ${day}`;
+}
+
+function confirmStartConflict(
+  activeTrip: Trip,
+  nextTitle: string,
+  onConfirm: () => void
+) {
+  Alert.alert(
+    'Уже есть активная поездка',
+    `«${activeTrip.title}» ещё не завершена. Завершить её и начать «${nextTitle}»?`,
+    [
+      { text: 'Отмена', style: 'cancel' },
+      { text: 'Завершить и начать', onPress: onConfirm },
+    ]
+  );
+}
+
+/** Главная: баннер старта и активная поездка — живые; идеи/want — статичны до этапа 9. */
 export default function HomeScreen() {
   const router = useRouter();
   const { open } = useAddSheet();
+  const {
+    active,
+    activePending,
+    activeVisited,
+    nextPlaceName,
+    bannerTrip,
+    dismissBanner,
+    startBannerTrip,
+  } = useHomeTrips();
+
+  const runBannerStart = async (completePrevious?: boolean) => {
+    if (!bannerTrip) return;
+    const result = await startBannerTrip({ completePrevious });
+    if (result.ok) {
+      router.push({ pathname: '/trip/[id]', params: { id: String(result.trip.id) } });
+      return;
+    }
+    if (result.reason === 'need_dates') {
+      router.push({
+        pathname: '/form/trip',
+        params: { id: String(bannerTrip.id), focusDates: '1' },
+      });
+      return;
+    }
+    if (result.reason === 'active_conflict') {
+      confirmStartConflict(result.activeTrip, bannerTrip.title, () => {
+        void runBannerStart(true);
+      });
+    }
+  };
 
   return (
     <Screen tabBarPadding>
@@ -28,37 +97,48 @@ export default function HomeScreen() {
         right={<SettingsButton onPress={() => router.push('/settings')} />}
       />
 
-      <View style={styles.hint}>
-        <Text style={styles.hintEyebrow}>СЕГОДНЯ НАЧИНАЕТСЯ</Text>
-        <Text style={styles.hintTitle}>Выборг на выходные</Text>
-        <Text style={styles.hintSub}>
-          12–14 сен · 4 места. Начать поездку?
-        </Text>
-        <View style={styles.hintRow}>
-          <View style={styles.hintPrimary}>
-            <Text style={styles.hintPrimaryText}>Начать поездку</Text>
-          </View>
-          <View style={styles.hintLater}>
-            <Text style={styles.hintLaterText}>Позже</Text>
+      {bannerTrip ? (
+        <View style={styles.hint}>
+          <Text style={styles.hintEyebrow}>СЕГОДНЯ НАЧИНАЕТСЯ</Text>
+          <Text style={styles.hintTitle}>{bannerTrip.title}</Text>
+          <Text style={styles.hintSub}>
+            {formatTripDates(bannerTrip.startDate, bannerTrip.endDate)}. Начать
+            поездку?
+          </Text>
+          <View style={styles.hintRow}>
+            <Pressable
+              style={styles.hintPrimary}
+              onPress={() => void runBannerStart()}
+            >
+              <Text style={styles.hintPrimaryText}>Начать поездку</Text>
+            </Pressable>
+            <Pressable style={styles.hintLater} onPress={dismissBanner}>
+              <Text style={styles.hintLaterText}>Позже</Text>
+            </Pressable>
           </View>
         </View>
-      </View>
+      ) : null}
 
-      <View style={styles.gap12}>
-        <ActiveTripCard
-          dayLabel="День 2"
-          title="Карелия"
-          nextName="Кивач"
-          leftAfter={3}
-          visited={2}
-          left={4}
-          dates="10–16 авг"
-          onNext={() => router.push('/next')}
-          onOpenTrip={() =>
-            router.push({ pathname: '/trip/[id]', params: { id: 'karelia' } })
-          }
-        />
-      </View>
+      {active ? (
+        <View style={styles.gap12}>
+          <ActiveTripCard
+            dayLabel={dayLabelForActive(active)}
+            title={active.title}
+            nextName={nextPlaceName ?? 'нет pending'}
+            leftAfter={Math.max(0, activePending - (nextPlaceName ? 1 : 0))}
+            visited={activeVisited}
+            left={activePending}
+            dates={formatTripDates(active.startDate, active.endDate)}
+            onNext={() => router.push('/next')}
+            onOpenTrip={() =>
+              router.push({
+                pathname: '/trip/[id]',
+                params: { id: String(active.id) },
+              })
+            }
+          />
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <SectionHeader
@@ -76,18 +156,14 @@ export default function HomeScreen() {
             sub="Горы и озёра · 5 мест"
             countLabel="5 мест"
             cover={['#3a6b4d', '#9dc3aa']}
-            onPress={() =>
-              router.push({ pathname: '/idea/[id]', params: { id: 'altai' } })
-            }
+            onPress={() => router.push('/want')}
           />
           <IdeaCard
             title="Стамбул"
             sub="Город на два континента · 6 мест"
             countLabel="6 мест"
             cover={['#8b5a2b', '#d9ab7c']}
-            onPress={() =>
-              router.push({ pathname: '/idea/[id]', params: { id: 'istanbul' } })
-            }
+            onPress={() => router.push('/want')}
           />
         </ScrollView>
       </View>
@@ -103,24 +179,21 @@ export default function HomeScreen() {
             name="Парк Монрепо"
             city="Выборг"
             category="walk"
-            onPress={() =>
-              router.push({ pathname: '/place/[id]', params: { id: 'monrepo' } })
-            }
+            onPress={() => router.push('/places')}
           />
           <PlaceRow
             name="Рускеала"
             city="Карелия"
             category="nature"
-            onPress={() =>
-              router.push({ pathname: '/place/[id]', params: { id: 'ruskeala' } })
-            }
+            onPress={() => router.push('/places')}
           />
         </View>
       </View>
 
       <View style={styles.demoNote}>
         <Text style={styles.demoNoteText}>
-          Каркас UI · данные статичны · нажмите + чтобы открыть «Что добавить?»
+          Этап 5: баннер старта и активная поездка — из БД. Блоки идей и «хочу»
+          на Главной оживут на этапе 9.
         </Text>
         <Text style={styles.demoLink} onPress={open}>
           Открыть sheet

@@ -208,3 +208,198 @@ export async function getTripsForPlace(db: SQLiteDatabase, placeId: number): Pro
   );
   return rows.map(mapTrip);
 }
+
+export async function getActiveTrip(db: SQLiteDatabase): Promise<Trip | null> {
+  await enableForeignKeys(db);
+  const row = await db.getFirstAsync<TripRow>(
+    `SELECT * FROM trips WHERE status = 'active' ORDER BY updated_at DESC LIMIT 1`
+  );
+  return row ? mapTrip(row) : null;
+}
+
+/** Запланированные поездки с start_date = dateOnly (YYYY-MM-DD). */
+export async function getPlannedTripsStartingOn(
+  db: SQLiteDatabase,
+  dateOnly: string
+): Promise<Trip[]> {
+  await enableForeignKeys(db);
+  const rows = await db.getAllAsync<TripRow>(
+    `SELECT * FROM trips
+     WHERE status = 'planned' AND start_date = ?
+     ORDER BY title ASC`,
+    dateOnly
+  );
+  return rows.map(mapTrip);
+}
+
+export async function getTripPlaceCounts(
+  db: SQLiteDatabase
+): Promise<Map<number, number>> {
+  await enableForeignKeys(db);
+  const rows = await db.getAllAsync<{ trip_id: number; c: number }>(
+    `SELECT trip_id, COUNT(*) AS c FROM trip_places GROUP BY trip_id`
+  );
+  return new Map(rows.map((r) => [r.trip_id, r.c]));
+}
+
+export async function getTripPlaceIds(
+  db: SQLiteDatabase,
+  tripId: number
+): Promise<Set<number>> {
+  await enableForeignKeys(db);
+  const rows = await db.getAllAsync<{ place_id: number }>(
+    'SELECT place_id FROM trip_places WHERE trip_id = ?',
+    tripId
+  );
+  return new Set(rows.map((r) => r.place_id));
+}
+
+/** Добавить места; уже есть в поездке — пропуск. status=pending, day=null, priority=optional. */
+export async function addTripPlacesBulk(
+  db: SQLiteDatabase,
+  tripId: number,
+  placeIds: number[]
+): Promise<number> {
+  if (placeIds.length === 0) return 0;
+  await enableForeignKeys(db);
+
+  const existing = await getTripPlaceIds(db, tripId);
+  const current = await getTripPlaces(db, tripId);
+  let nextOrder =
+    current.length === 0 ? 0 : Math.max(...current.map((p) => p.sortOrder)) + 1;
+
+  let added = 0;
+  await db.withTransactionAsync(async () => {
+    const ts = nowIso();
+    for (const placeId of placeIds) {
+      if (existing.has(placeId)) continue;
+      await db.runAsync(
+        `INSERT INTO trip_places (
+          trip_id, place_id, sort_order, day_number, status, visit_date,
+          liked, notes, priority, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        tripId,
+        placeId,
+        nextOrder,
+        null,
+        'pending',
+        null,
+        0,
+        null,
+        'optional',
+        ts,
+        ts
+      );
+      nextOrder += 1;
+      added += 1;
+      existing.add(placeId);
+    }
+    if (added > 0) {
+      await db.runAsync('UPDATE trips SET updated_at = ? WHERE id = ?', ts, tripId);
+    }
+  });
+  return added;
+}
+
+/**
+ * Поменять местами соседние позиции маршрута.
+ * Меняются и sort_order, и dayNumber — день остаётся у позиции.
+ */
+export async function swapTripPlaceOrder(
+  db: SQLiteDatabase,
+  aId: number,
+  bId: number
+): Promise<void> {
+  await enableForeignKeys(db);
+  const a = await db.getFirstAsync<TripPlaceRow>(
+    'SELECT * FROM trip_places WHERE id = ?',
+    aId
+  );
+  const b = await db.getFirstAsync<TripPlaceRow>(
+    'SELECT * FROM trip_places WHERE id = ?',
+    bId
+  );
+  if (!a || !b) throw new Error('Место поездки не найдено');
+  if (a.trip_id !== b.trip_id) throw new Error('Места из разных поездок');
+
+  await db.withTransactionAsync(async () => {
+    const ts = nowIso();
+    await db.runAsync(
+      `UPDATE trip_places SET sort_order = ?, day_number = ?, updated_at = ? WHERE id = ?`,
+      b.sort_order,
+      b.day_number,
+      ts,
+      a.id
+    );
+    await db.runAsync(
+      `UPDATE trip_places SET sort_order = ?, day_number = ?, updated_at = ? WHERE id = ?`,
+      a.sort_order,
+      a.day_number,
+      ts,
+      b.id
+    );
+    await db.runAsync('UPDATE trips SET updated_at = ? WHERE id = ?', ts, a.trip_id);
+  });
+}
+
+/** Сбросить day_number > maxDay в null; вернуть число затронутых. */
+export async function clearTripPlaceDaysBeyond(
+  db: SQLiteDatabase,
+  tripId: number,
+  maxDay: number
+): Promise<number> {
+  await enableForeignKeys(db);
+  const result = await db.runAsync(
+    `UPDATE trip_places
+     SET day_number = NULL, updated_at = ?
+     WHERE trip_id = ? AND day_number IS NOT NULL AND day_number > ?`,
+    nowIso(),
+    tripId,
+    maxDay
+  );
+  return result.changes;
+}
+
+/**
+ * Начать поездку: status=active, current=true.
+ * Если есть другая active — завершает её (completePrevious=true) или бросает.
+ */
+export async function startTrip(
+  db: SQLiteDatabase,
+  tripId: number,
+  options?: { completePrevious?: boolean }
+): Promise<Trip> {
+  await enableForeignKeys(db);
+  const trip = await getTripById(db, tripId);
+  if (!trip) throw new Error(`Поездка ${tripId} не найдена`);
+  if (!trip.startDate || !trip.endDate) {
+    throw new Error('Для старта нужны даты начала и окончания');
+  }
+
+  const active = await getActiveTrip(db);
+  if (active && active.id !== tripId) {
+    if (!options?.completePrevious) {
+      const err = new Error('ACTIVE_CONFLICT') as Error & { activeTrip: Trip };
+      err.activeTrip = active;
+      throw err;
+    }
+    await updateTrip(db, active.id, { status: 'completed', current: false });
+  }
+
+  return updateTrip(db, tripId, { status: 'active', current: true });
+}
+
+export async function completeTrip(db: SQLiteDatabase, tripId: number): Promise<Trip> {
+  return updateTrip(db, tripId, { status: 'completed', current: false });
+}
+
+export async function reactivateTrip(db: SQLiteDatabase, tripId: number): Promise<Trip> {
+  await enableForeignKeys(db);
+  const active = await getActiveTrip(db);
+  if (active && active.id !== tripId) {
+    const err = new Error('ACTIVE_CONFLICT') as Error & { activeTrip: Trip };
+    err.activeTrip = active;
+    throw err;
+  }
+  return updateTrip(db, tripId, { status: 'active', current: true });
+}
