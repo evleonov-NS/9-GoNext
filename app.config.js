@@ -27,7 +27,8 @@ module.exports = {
   },
   web: {
     bundler: 'metro',
-    output: 'single',
+    // static — COEP/COOP заголовки Metro попадают и на HTML (нужно для expo-sqlite web)
+    output: 'static',
     favicon: './assets/images/favicon.png',
   },
   plugins: ['expo-router', 'expo-sqlite', '@react-native-community/datetimepicker'],
