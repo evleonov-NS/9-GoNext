@@ -76,6 +76,9 @@ type IdeaCardProps = {
   countLabel: string;
   cover: [string, string];
   onPress?: () => void;
+  /** full — список «Хочу»; compact — горизонтальная карточка на Главной */
+  variant?: 'compact' | 'full';
+  metaRight?: string;
 };
 
 export function IdeaCard({
@@ -84,7 +87,28 @@ export function IdeaCard({
   countLabel,
   cover,
   onPress,
+  variant = 'compact',
+  metaRight = 'без дат',
 }: IdeaCardProps) {
+  if (variant === 'full') {
+    return (
+      <Pressable style={styles.ideaFull} onPress={onPress}>
+        <LinearGradientPlaceholder colors={cover} style={styles.ideaFullCover}>
+          <View style={styles.ideaFullCoverRow}>
+            <View style={styles.ideaBadge}>
+              <Text style={styles.ideaBadgeText}>{countLabel}</Text>
+            </View>
+            <Text style={styles.ideaFullMeta}>{metaRight}</Text>
+          </View>
+        </LinearGradientPlaceholder>
+        <View style={styles.ideaFullBody}>
+          <Text style={styles.ideaFullTitle}>{title}</Text>
+          <Text style={styles.ideaFullSub}>{sub}</Text>
+        </View>
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable style={styles.ideaCard} onPress={onPress}>
       <LinearGradientPlaceholder colors={cover} style={styles.ideaCover}>
@@ -313,6 +337,45 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 12,
     lineHeight: 17,
+    color: colors.textSecondary,
+  },
+  ideaFull: {
+    width: '100%',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.xxl,
+    overflow: 'hidden',
+  },
+  ideaFullCover: {
+    height: 96,
+  },
+  ideaFullCoverRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    padding: 12,
+  },
+  ideaFullMeta: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 4,
+  },
+  ideaFullBody: {
+    padding: 14,
+  },
+  ideaFullTitle: {
+    fontSize: 19,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    color: colors.text,
+  },
+  ideaFullSub: {
+    marginTop: 6,
+    fontSize: 12.5,
+    lineHeight: 18,
     color: colors.textSecondary,
   },
   placeRow: {

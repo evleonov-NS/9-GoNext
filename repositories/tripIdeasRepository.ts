@@ -160,3 +160,95 @@ export async function removeTripIdeaPlace(db: SQLiteDatabase, id: number): Promi
   await enableForeignKeys(db);
   await db.runAsync('DELETE FROM trip_idea_places WHERE id = ?', id);
 }
+
+export async function getTripIdeaPlaceCounts(
+  db: SQLiteDatabase
+): Promise<Map<number, number>> {
+  await enableForeignKeys(db);
+  const rows = await db.getAllAsync<{ idea_id: number; c: number }>(
+    `SELECT idea_id, COUNT(*) AS c FROM trip_idea_places GROUP BY idea_id`
+  );
+  return new Map(rows.map((r) => [r.idea_id, r.c]));
+}
+
+export async function getTripIdeaPlaceIds(
+  db: SQLiteDatabase,
+  ideaId: number
+): Promise<Set<number>> {
+  await enableForeignKeys(db);
+  const rows = await db.getAllAsync<{ place_id: number }>(
+    'SELECT place_id FROM trip_idea_places WHERE idea_id = ?',
+    ideaId
+  );
+  return new Set(rows.map((r) => r.place_id));
+}
+
+/** Добавить несколько мест; уже существующие пары idea+place пропускаются. */
+export async function addTripIdeaPlacesBulk(
+  db: SQLiteDatabase,
+  ideaId: number,
+  placeIds: number[],
+  priority: TripIdeaPlaceInput['priority'] = 'optional'
+): Promise<number> {
+  if (placeIds.length === 0) return 0;
+  await enableForeignKeys(db);
+
+  const existing = await getTripIdeaPlaceIds(db, ideaId);
+  const current = await getTripIdeaPlaces(db, ideaId);
+  let nextOrder =
+    current.length === 0 ? 0 : Math.max(...current.map((p) => p.sortOrder)) + 1;
+
+  let added = 0;
+  await db.withTransactionAsync(async () => {
+    const ts = nowIso();
+    for (const placeId of placeIds) {
+      if (existing.has(placeId)) continue;
+      await db.runAsync(
+        `INSERT INTO trip_idea_places (idea_id, place_id, sort_order, priority, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        ideaId,
+        placeId,
+        nextOrder,
+        priority ?? 'optional',
+        null,
+        ts
+      );
+      nextOrder += 1;
+      added += 1;
+      existing.add(placeId);
+    }
+    if (added > 0) {
+      await db.runAsync('UPDATE trip_ideas SET updated_at = ? WHERE id = ?', ts, ideaId);
+    }
+  });
+  return added;
+}
+
+/** Поменять местами sort_order двух связей идеи. */
+export async function swapTripIdeaPlaceOrder(
+  db: SQLiteDatabase,
+  aId: number,
+  bId: number
+): Promise<void> {
+  await enableForeignKeys(db);
+  const a = await db.getFirstAsync<TripIdeaPlaceRow>(
+    'SELECT * FROM trip_idea_places WHERE id = ?',
+    aId
+  );
+  const b = await db.getFirstAsync<TripIdeaPlaceRow>(
+    'SELECT * FROM trip_idea_places WHERE id = ?',
+    bId
+  );
+  if (!a || !b) throw new Error('Место идеи не найдено');
+  if (a.idea_id !== b.idea_id) throw new Error('Места из разных идей');
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('UPDATE trip_idea_places SET sort_order = ? WHERE id = ?', b.sort_order, a.id);
+    await db.runAsync('UPDATE trip_idea_places SET sort_order = ? WHERE id = ?', a.sort_order, b.id);
+    await db.runAsync(
+      'UPDATE trip_ideas SET updated_at = ? WHERE id = ?',
+      nowIso(),
+      a.idea_id
+    );
+  });
+}
