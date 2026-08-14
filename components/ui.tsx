@@ -59,14 +59,16 @@ type PageTitleProps = {
   eyebrow: string;
   title: string;
   right?: ReactNode;
+  tone?: 'default' | 'onHero';
 };
 
-export function PageTitle({ eyebrow, title, right }: PageTitleProps) {
+export function PageTitle({ eyebrow, title, right, tone = 'default' }: PageTitleProps) {
+  const onHero = tone === 'onHero';
   return (
     <View style={styles.titleRow}>
       <View style={styles.titleText}>
-        <Text style={styles.eyebrow}>{eyebrow}</Text>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.eyebrow, onHero && styles.eyebrowOnHero]}>{eyebrow}</Text>
+        <Text style={[styles.title, onHero && styles.titleOnHero]}>{title}</Text>
       </View>
       {right}
     </View>
@@ -123,5 +125,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -1.2,
     color: colors.text,
+  },
+  eyebrowOnHero: {
+    color: colors.onHeroEyebrow,
+  },
+  titleOnHero: {
+    color: colors.onHeroText,
   },
 });

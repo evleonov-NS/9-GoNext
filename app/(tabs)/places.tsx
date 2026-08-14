@@ -99,6 +99,7 @@ export default function PlacesScreen() {
         <Text style={styles.error}>{error}</Text>
       ) : filtered.length === 0 ? (
         <EmptyState
+          illustrated={places.length === 0}
           title={places.length === 0 ? 'Пока нет мест' : 'Ничего не найдено'}
           subtitle={
             places.length === 0

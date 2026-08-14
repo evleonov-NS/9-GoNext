@@ -1,9 +1,10 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import { LinearGradientPlaceholder } from '@/components/LinearGradientPlaceholder';
+import { CoverImage } from '@/components/CoverImage';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import type { PlaceCategoryId } from '@/constants/categories';
 import { PLACE_CATEGORIES } from '@/constants/categories';
+import { artwork } from '@/constants/artwork';
 import { colors, radii } from '@/constants/theme';
 
 type ActiveTripCardProps = {
@@ -74,7 +75,7 @@ type IdeaCardProps = {
   title: string;
   sub: string;
   countLabel: string;
-  cover: [string, string];
+  cover?: [string, string];
   onPress?: () => void;
   /** full — список «Хочу»; compact — горизонтальная карточка на Главной */
   variant?: 'compact' | 'full';
@@ -85,7 +86,6 @@ export function IdeaCard({
   title,
   sub,
   countLabel,
-  cover,
   onPress,
   variant = 'compact',
   metaRight = 'без дат',
@@ -93,14 +93,14 @@ export function IdeaCard({
   if (variant === 'full') {
     return (
       <Pressable style={styles.ideaFull} onPress={onPress}>
-        <LinearGradientPlaceholder colors={cover} style={styles.ideaFullCover}>
+        <CoverImage source={artwork.cover} style={styles.ideaFullCover}>
           <View style={styles.ideaFullCoverRow}>
             <View style={styles.ideaBadge}>
               <Text style={styles.ideaBadgeText}>{countLabel}</Text>
             </View>
             <Text style={styles.ideaFullMeta}>{metaRight}</Text>
           </View>
-        </LinearGradientPlaceholder>
+        </CoverImage>
         <View style={styles.ideaFullBody}>
           <Text style={styles.ideaFullTitle}>{title}</Text>
           <Text style={styles.ideaFullSub}>{sub}</Text>
@@ -111,11 +111,11 @@ export function IdeaCard({
 
   return (
     <Pressable style={styles.ideaCard} onPress={onPress}>
-      <LinearGradientPlaceholder colors={cover} style={styles.ideaCover}>
+      <CoverImage source={artwork.card} style={styles.ideaCover}>
         <View style={styles.ideaBadge}>
           <Text style={styles.ideaBadgeText}>{countLabel}</Text>
         </View>
-      </LinearGradientPlaceholder>
+      </CoverImage>
       <View style={styles.ideaBody}>
         <Text style={styles.ideaTitle}>{title}</Text>
         <Text style={styles.ideaSub}>{sub}</Text>

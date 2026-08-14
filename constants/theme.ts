@@ -1,29 +1,42 @@
 import { MD3LightTheme, configureFonts } from 'react-native-paper';
 import type { MD3Theme } from 'react-native-paper';
 
-/** Токены палитры из docs/reference/gonext_prototype.html */
+/** Палитра из иллюстрации (assets/INTEGRATION_PROMPT.md). */
 export const colors = {
-  accent: '#2f6d58',
-  accentDark: '#254f41',
-  accentHover: '#22503d',
-  accentMuted: '#e5f0ea',
+  accent: '#3f5c46',
+  accentDark: '#2d4233',
+  accentHover: '#334a39',
+  accentMuted: '#e5eee7',
   accentSoft: '#e8f1ea',
-  accentRing: 'rgba(47,109,88,0.22)',
+  accentRing: 'rgba(63,92,70,0.22)',
 
-  bg: '#f5f5f2',
-  bgOuter: '#e8e9e5',
+  bg: '#faf4e9',
+  bgOuter: '#f0e5d1',
   surface: '#ffffff',
-  surfaceMuted: '#eef0ec',
-  border: '#e6e7e1',
-  borderStrong: '#dfe1da',
-  dashed: '#d8dad1',
-  handle: '#d0d1cc',
+  surfaceMuted: '#f6eee0',
+  border: '#f0e5d1',
+  borderStrong: '#e6d7c0',
+  dashed: '#e6d7c0',
+  handle: '#dccbb0',
 
-  text: '#171817',
-  textSecondary: '#72756e',
-  textMuted: '#8a8d84',
-  textStrong: '#45483f',
+  text: '#2b2519',
+  textSecondary: '#9b8a70',
+  textMuted: '#9b8a70',
+  textStrong: '#26313f',
   textOnAccent: '#ffffff',
+  textOnGold: '#3a2c0d',
+
+  gold: '#edb63f',
+  terracotta: '#a4652c',
+  terracottaMid: '#d9814a',
+  ridges: '#8f9bbd',
+  sky: '#cfdcf0',
+
+  onHeroEyebrow: '#5d6b7d',
+  onHeroText: '#26313f',
+
+  glassBg: 'rgba(255,255,255,0.82)',
+  glassBorder: 'rgba(255,255,255,0.9)',
 
   overlay: 'rgba(20,22,20,0.36)',
 
@@ -31,10 +44,10 @@ export const colors = {
   hintBorder: '#f0e2cd',
   hintAccent: '#a1743a',
   hintText: '#8a7458',
-  hintButton: '#a9622c',
+  hintButton: '#a4652c',
   hintChip: '#ecdcc4',
 
-  diaryBgTop: '#faf2e7',
+  diaryBgTop: '#faf4e9',
   diaryChipBg: '#f2e2cd',
   diaryChipFg: '#8a5c25',
   diaryTitle: '#3b2d1d',

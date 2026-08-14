@@ -2,7 +2,9 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { BackButton } from '@/components/chrome';
+import { CoverImage } from '@/components/CoverImage';
 import { Screen } from '@/components/Screen';
+import { artwork } from '@/constants/artwork';
 import { colors, radii } from '@/constants/theme';
 
 export default function DiaryScreen() {
@@ -16,6 +18,7 @@ export default function DiaryScreen() {
           <Text style={styles.chipText}>дневник поездки</Text>
         </View>
       </View>
+      <CoverImage source={artwork.cover} style={styles.cover} />
       <Text style={styles.title}>Карелия 2025</Text>
       <Text style={styles.sub}>Июль 2025 · 7 мест · заготовка экрана</Text>
       <View style={styles.card}>
@@ -37,6 +40,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginBottom: 18,
+  },
+  cover: {
+    height: 160,
+    borderRadius: radii.card,
+    marginBottom: 16,
   },
   chip: {
     paddingHorizontal: 10,

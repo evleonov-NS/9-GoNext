@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   StyleSheet,
   TextInput,
@@ -21,7 +22,7 @@ import {
 import { colors, radii } from '@/constants/theme';
 import { createPlace, getPlaceById, updatePlace } from '@/repositories/placesRepository';
 import type { PlaceInput } from '@/types';
-import { formatCoords, parseCoord } from '@/utils/coords';
+import { formatCoords, parseCoord, parseCoordsPair } from '@/utils/coords';
 
 export default function FormPlaceScreen() {
   const router = useRouter();
@@ -41,6 +42,8 @@ export default function FormPlaceScreen() {
   const [visitLater, setVisitLater] = useState(false);
   const [liked, setLiked] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [showPasteField, setShowPasteField] = useState(false);
+  const [pasteDraft, setPasteDraft] = useState('');
 
   useEffect(() => {
     if (!isEdit || editId == null) return;
@@ -127,6 +130,22 @@ export default function FormPlaceScreen() {
     }
   };
 
+  const applyPastedCoords = (raw: string): boolean => {
+    const parsed = parseCoordsPair(raw);
+    if (!parsed) return false;
+    setLat(parsed.latitude.toFixed(6));
+    setLng(parsed.longitude.toFixed(6));
+    setShowPasteField(false);
+    setPasteDraft('');
+    setToast('Координаты вставлены');
+    return true;
+  };
+
+  const openPasteFallback = () => {
+    setPasteDraft('');
+    setShowPasteField(true);
+  };
+
   const onCopyCoords = async () => {
     const latitude = parseCoord(lat);
     const longitude = parseCoord(lng);
@@ -134,8 +153,35 @@ export default function FormPlaceScreen() {
       Alert.alert('Нет координат', 'Сначала укажите широту и долготу.');
       return;
     }
-    await Clipboard.setStringAsync(formatCoords(latitude, longitude));
-    setToast('Координаты скопированы');
+    try {
+      await Clipboard.setStringAsync(formatCoords(latitude, longitude));
+      setToast('Координаты скопированы');
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Не скопировалось', 'Скопируйте широту и долготу вручную из полей выше.');
+    }
+  };
+
+  const onPasteCoords = async () => {
+    if (Platform.OS === 'web') {
+      openPasteFallback();
+      return;
+    }
+    try {
+      const raw = await Clipboard.getStringAsync();
+      if (raw.trim()) {
+        if (applyPastedCoords(raw)) return;
+        Alert.alert(
+          'Не распознаны',
+          'Скопируйте широту и долготу в формате десятичных градусов, например 62.267500, 33.980800.'
+        );
+        return;
+      }
+      Alert.alert('Буфер пуст', 'Сначала скопируйте координаты в навигаторе или на карте.');
+    } catch (e) {
+      console.error(e);
+      openPasteFallback();
+    }
   };
 
   if (loading) {
@@ -229,9 +275,29 @@ export default function FormPlaceScreen() {
             autoCapitalize="none"
           />
         </View>
-        <Pressable style={styles.secondaryBtn} onPress={() => void onCopyCoords()}>
-          <Text style={styles.secondaryBtnText}>Скопировать координаты для навигатора</Text>
-        </Pressable>
+        <View style={styles.coordActions}>
+          <Pressable style={styles.secondaryBtn} onPress={() => void onPasteCoords()}>
+            <Text style={styles.secondaryBtnText}>Вставить координаты из буфера</Text>
+          </Pressable>
+          {showPasteField ? (
+            <TextInput
+              autoFocus
+              value={pasteDraft}
+              onChangeText={(t) => {
+                setPasteDraft(t);
+                applyPastedCoords(t);
+              }}
+              placeholder="Вставьте сюда: 62.267500, 33.980800"
+              placeholderTextColor={colors.textMuted}
+              style={[styles.input, styles.pasteInput]}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          ) : null}
+          <Pressable style={styles.secondaryBtn} onPress={() => void onCopyCoords()}>
+            <Text style={styles.secondaryBtnText}>Скопировать координаты для навигатора</Text>
+          </Pressable>
+        </View>
 
         <View style={styles.flags}>
           <Pressable
@@ -347,13 +413,21 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     fontSize: 14,
   },
+  coordActions: {
+    gap: 8,
+    marginBottom: 14,
+  },
+  pasteInput: {
+    marginBottom: 0,
+    fontFamily: 'monospace',
+    fontSize: 14,
+  },
   secondaryBtn: {
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: radii.md,
     paddingVertical: 13,
     alignItems: 'center',
-    marginBottom: 14,
     backgroundColor: colors.surface,
   },
   secondaryBtnText: {

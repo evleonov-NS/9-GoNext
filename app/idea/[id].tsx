@@ -11,11 +11,11 @@ import { Text } from 'react-native-paper';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { BackButton } from '@/components/chrome';
 import { IdeaPlaceSheet } from '@/components/IdeaPlaceSheet';
-import { LinearGradientPlaceholder } from '@/components/LinearGradientPlaceholder';
+import { CoverImage } from '@/components/CoverImage';
 import { Screen } from '@/components/Screen';
+import { artwork } from '@/constants/artwork';
 import { PLACE_CATEGORIES } from '@/constants/categories';
 import {
-  ideaCoverForId,
   ideaStatusLabel,
   PLACE_PRIORITIES,
 } from '@/constants/priorities';
@@ -71,8 +71,6 @@ export default function IdeaCardScreen() {
     );
   }
 
-  const cover = ideaCoverForId(idea.id);
-
   return (
     <Screen>
       <View style={styles.header}>
@@ -82,7 +80,7 @@ export default function IdeaCardScreen() {
         </View>
       </View>
 
-      <LinearGradientPlaceholder colors={cover} style={styles.cover} />
+      <CoverImage source={artwork.cover} style={styles.cover} />
 
       <Text style={styles.title}>{idea.title}</Text>
       {idea.description ? <Text style={styles.desc}>{idea.description}</Text> : null}
@@ -232,8 +230,8 @@ const styles = StyleSheet.create({
     color: '#895727',
   },
   cover: {
-    height: 130,
-    borderRadius: 26,
+    height: 160,
+    borderRadius: radii.card,
   },
   title: {
     marginTop: 16,

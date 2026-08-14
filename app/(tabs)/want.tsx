@@ -96,6 +96,7 @@ export default function WantScreen() {
           </View>
           {filteredIdeas.length === 0 ? (
             <EmptyState
+              illustrated={ideas.length === 0}
               title={ideas.length === 0 ? 'Пока нет направлений' : 'Ничего не найдено'}
               subtitle={
                 ideas.length === 0
@@ -137,6 +138,7 @@ export default function WantScreen() {
         </View>
       ) : filteredWantPlaces.length === 0 ? (
         <EmptyState
+          illustrated={visitLaterPlaces.length === 0}
           title={
             visitLaterPlaces.length === 0
               ? 'Список «хочу посетить» пуст'

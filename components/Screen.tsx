@@ -1,7 +1,9 @@
 import { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { HeroBackdrop } from '@/components/HeroBackdrop';
 import { colors } from '@/constants/theme';
+import { SCREEN_PAD_TOP, useHeroHeight } from '@/utils/heroLayout';
 
 type Props = {
   children: ReactNode;
@@ -9,6 +11,8 @@ type Props = {
   contentStyle?: ViewStyle;
   /** Отступ снизу под плавающий tab bar + FAB */
   tabBarPadding?: boolean;
+  /** Hero-иллюстрация сверху, уезжает вместе со скроллом */
+  hero?: boolean;
 };
 
 export function Screen({
@@ -16,15 +20,20 @@ export function Screen({
   scroll = true,
   contentStyle,
   tabBarPadding = false,
+  hero = false,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const heroHeight = useHeroHeight();
   const bottomPad = tabBarPadding ? 110 + insets.bottom : 24 + insets.bottom;
+
+  const heroLayer = hero ? <HeroBackdrop width={width} height={heroHeight} /> : null;
 
   const body = (
     <View
       style={[
         styles.inner,
-        { paddingTop: 26 + insets.top, paddingBottom: bottomPad },
+        { paddingTop: SCREEN_PAD_TOP + insets.top, paddingBottom: bottomPad },
         contentStyle,
       ]}
     >
@@ -33,7 +42,12 @@ export function Screen({
   );
 
   if (!scroll) {
-    return <View style={styles.root}>{body}</View>;
+    return (
+      <View style={styles.root}>
+        {heroLayer}
+        {body}
+      </View>
+    );
   }
 
   return (
@@ -43,6 +57,7 @@ export function Screen({
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
+      {heroLayer}
       {body}
     </ScrollView>
   );
@@ -55,5 +70,6 @@ const styles = StyleSheet.create({
   },
   inner: {
     paddingHorizontal: 18,
+    zIndex: 1,
   },
 });

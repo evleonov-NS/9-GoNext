@@ -1,20 +1,22 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Suspense } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ImageBackground, Platform, StyleSheet } from 'react-native';
 import { PaperProvider, Text } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SQLiteProvider } from 'expo-sqlite';
 import { AddSheetProvider } from '@/components/AddSheetContext';
+import { artwork } from '@/constants/artwork';
 import { DATABASE_NAME, initializeDatabase } from '@/database';
 import { colors, theme } from '@/constants/theme';
 
 function DbLoading() {
+  const source = Platform.OS === 'ios' ? artwork.bgIos : artwork.bgAndroid;
   return (
-    <View style={styles.boot}>
+    <ImageBackground source={source} style={styles.boot} resizeMode="cover">
       <ActivityIndicator color={colors.accent} size="large" />
       <Text style={styles.bootText}>Открываем базу…</Text>
-    </View>
+    </ImageBackground>
   );
 }
 

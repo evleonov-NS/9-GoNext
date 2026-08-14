@@ -10,9 +10,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text } from 'react-native-paper';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { BackButton } from '@/components/chrome';
-import { LinearGradientPlaceholder } from '@/components/LinearGradientPlaceholder';
+import { CoverImage } from '@/components/CoverImage';
 import { Screen } from '@/components/Screen';
 import { TripPlaceSheet } from '@/components/TripPlaceSheet';
+import { artwork } from '@/constants/artwork';
 import { PLACE_CATEGORIES } from '@/constants/categories';
 import { PLACE_PRIORITIES } from '@/constants/priorities';
 import { colors, radii } from '@/constants/theme';
@@ -30,7 +31,6 @@ import {
 } from '@/utils/tripDates';
 import {
   formatTripDates,
-  tripCoverForId,
   tripPlaceStatusLabel,
   tripStatusLabel,
 } from '@/utils/tripLabels';
@@ -218,7 +218,6 @@ export default function TripCardScreen() {
     );
   }
 
-  const cover = tripCoverForId(trip.id);
   const datesLabel = formatTripDates(trip.startDate, trip.endDate);
 
   return (
@@ -232,7 +231,7 @@ export default function TripCardScreen() {
         </View>
       </View>
 
-      <LinearGradientPlaceholder colors={cover} style={styles.cover} />
+      <CoverImage source={artwork.cover} style={styles.cover} />
 
       <Text style={styles.title}>{trip.title}</Text>
       <Text style={styles.dates}>{datesLabel}</Text>
@@ -490,11 +489,11 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#2f6d58',
+    color: colors.accent,
   },
   cover: {
-    height: 130,
-    borderRadius: 26,
+    height: 160,
+    borderRadius: radii.card,
   },
   title: {
     marginTop: 16,

@@ -11,19 +11,29 @@ module.exports = {
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   splash: {
-    image: './assets/images/splash-icon.png',
-    resizeMode: 'contain',
-    backgroundColor: '#ffffff',
+    image: './assets/gonext-bg-1080x1920.png',
+    resizeMode: 'cover',
+    backgroundColor: '#faf4e9',
   },
   ios: {
     supportsTablet: true,
+    splash: {
+      image: './assets/gonext-bg-1290x2796.png',
+      resizeMode: 'cover',
+      backgroundColor: '#faf4e9',
+    },
   },
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/images/android-icon-foreground.png',
-      backgroundColor: '#E6F4FE',
+      backgroundColor: '#faf4e9',
     },
     edgeToEdgeEnabled: true,
+    splash: {
+      image: './assets/gonext-bg-1080x1920.png',
+      resizeMode: 'cover',
+      backgroundColor: '#faf4e9',
+    },
   },
   web: {
     bundler: 'metro',

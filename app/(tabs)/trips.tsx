@@ -84,6 +84,7 @@ export default function TripsScreen() {
         <Text style={styles.error}>{error}</Text>
       ) : filtered.length === 0 ? (
         <EmptyState
+          illustrated={trips.length === 0}
           title={trips.length === 0 ? 'Пока нет поездок' : 'Ничего не найдено'}
           subtitle={
             trips.length === 0

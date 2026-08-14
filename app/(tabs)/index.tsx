@@ -1,8 +1,18 @@
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActiveTripCard, IdeaCard, PlaceRow } from '@/components/cards';
 import { SettingsButton } from '@/components/chrome';
+import { GlassView } from '@/components/GlassView';
 import { Screen } from '@/components/Screen';
 import { PageTitle, SectionHeader } from '@/components/ui';
 import { useAddSheet } from '@/components/AddSheetContext';
@@ -10,6 +20,11 @@ import { colors, radii } from '@/constants/theme';
 import { addDays, toDateOnly } from '@/database/helpers';
 import { useHomeTrips } from '@/hooks/useHomeTrips';
 import type { Trip } from '@/types';
+import {
+  heroContentOverlap,
+  SCREEN_PAD_TOP,
+  useHeroHeight,
+} from '@/utils/heroLayout';
 import { formatTripDates } from '@/utils/tripLabels';
 import { tripDurationDays, todayDateOnly } from '@/utils/tripDates';
 
@@ -58,6 +73,8 @@ function confirmStartConflict(
 export default function HomeScreen() {
   const router = useRouter();
   const { open } = useAddSheet();
+  const insets = useSafeAreaInsets();
+  const heroHeight = useHeroHeight();
   const {
     active,
     activePending,
@@ -67,6 +84,19 @@ export default function HomeScreen() {
     dismissBanner,
     startBannerTrip,
   } = useHomeTrips();
+
+  const [onHeroHeight, setOnHeroHeight] = useState(0);
+  const onHeroLayout = (e: LayoutChangeEvent) => {
+    setOnHeroHeight(e.nativeEvent.layout.height);
+  };
+
+  /** Карточка под hero начинается на границе растворения, а не после стыка. */
+  const heroSpacer = Math.max(
+    12,
+    heroHeight -
+      heroContentOverlap(heroHeight) -
+      (SCREEN_PAD_TOP + insets.top + onHeroHeight)
+  );
 
   const runBannerStart = async (completePrevious?: boolean) => {
     if (!bannerTrip) return;
@@ -90,34 +120,39 @@ export default function HomeScreen() {
   };
 
   return (
-    <Screen tabBarPadding>
-      <PageTitle
-        eyebrow={`GoNext · ${formatToday()}`}
-        title="Куда дальше?"
-        right={<SettingsButton onPress={() => router.push('/settings')} />}
-      />
+    <Screen tabBarPadding hero>
+      <View onLayout={onHeroLayout}>
+        <PageTitle
+          tone="onHero"
+          eyebrow={`GoNext · ${formatToday()}`}
+          title="Куда дальше?"
+          right={<SettingsButton variant="glass" onPress={() => router.push('/settings')} />}
+        />
 
-      {bannerTrip ? (
-        <View style={styles.hint}>
-          <Text style={styles.hintEyebrow}>СЕГОДНЯ НАЧИНАЕТСЯ</Text>
-          <Text style={styles.hintTitle}>{bannerTrip.title}</Text>
-          <Text style={styles.hintSub}>
-            {formatTripDates(bannerTrip.startDate, bannerTrip.endDate)}. Начать
-            поездку?
-          </Text>
-          <View style={styles.hintRow}>
-            <Pressable
-              style={styles.hintPrimary}
-              onPress={() => void runBannerStart()}
-            >
-              <Text style={styles.hintPrimaryText}>Начать поездку</Text>
-            </Pressable>
-            <Pressable style={styles.hintLater} onPress={dismissBanner}>
-              <Text style={styles.hintLaterText}>Позже</Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
+        {bannerTrip ? (
+          <GlassView style={styles.hint}>
+            <Text style={styles.hintEyebrow}>СЕГОДНЯ НАЧИНАЕТСЯ</Text>
+            <Text style={styles.hintTitle}>{bannerTrip.title}</Text>
+            <Text style={styles.hintSub}>
+              {formatTripDates(bannerTrip.startDate, bannerTrip.endDate)}. Начать
+              поездку?
+            </Text>
+            <View style={styles.hintRow}>
+              <Pressable
+                style={styles.hintPrimary}
+                onPress={() => void runBannerStart()}
+              >
+                <Text style={styles.hintPrimaryText}>Начать поездку</Text>
+              </Pressable>
+              <Pressable style={styles.hintLater} onPress={dismissBanner}>
+                <Text style={styles.hintLaterText}>Позже</Text>
+              </Pressable>
+            </View>
+          </GlassView>
+        ) : null}
+      </View>
+
+      <View style={{ height: heroSpacer }} />
 
       {active ? (
         <View style={styles.gap12}>
@@ -205,9 +240,6 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   hint: {
-    backgroundColor: colors.hintBg,
-    borderWidth: 1,
-    borderColor: colors.hintBorder,
     borderRadius: radii.xxl,
     padding: 16,
     marginBottom: 12,
@@ -216,7 +248,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.7,
-    color: colors.hintAccent,
+    color: colors.onHeroEyebrow,
   },
   hintTitle: {
     marginTop: 9,
@@ -224,12 +256,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: -0.3,
-    color: colors.text,
+    color: colors.onHeroText,
   },
   hintSub: {
     fontSize: 12.5,
     lineHeight: 18,
-    color: colors.hintText,
+    color: colors.onHeroEyebrow,
   },
   hintRow: {
     flexDirection: 'row',
@@ -250,16 +282,16 @@ const styles = StyleSheet.create({
   },
   hintLater: {
     borderWidth: 1,
-    borderColor: colors.hintChip,
+    borderColor: colors.glassBorder,
     borderRadius: radii.sm,
     paddingHorizontal: 16,
     paddingVertical: 13,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.glassBg,
   },
   hintLaterText: {
     fontSize: 12.5,
     fontWeight: '800',
-    color: colors.hintText,
+    color: colors.onHeroText,
   },
   gap12: {
     marginBottom: 4,
