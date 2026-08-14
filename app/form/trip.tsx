@@ -14,6 +14,7 @@ import { BackButton } from '@/components/chrome';
 import { DateField } from '@/components/DateField';
 import { Screen } from '@/components/Screen';
 import { colors, radii } from '@/constants/theme';
+import { getTripIdeaById, getTripIdeaPlaces } from '@/repositories/tripIdeasRepository';
 import {
   clearTripPlaceDaysBeyond,
   createTrip,
@@ -21,51 +22,93 @@ import {
   getTripById,
   updateTrip,
 } from '@/repositories/tripsRepository';
+import { convertIdeaToTrip } from '@/services/convertIdeaToTrip';
+import { pluralPlaces } from '@/utils/plural';
 import { tripDurationDays } from '@/utils/tripDates';
 
 export default function FormTripScreen() {
   const router = useRouter();
   const db = useSQLiteContext();
-  const params = useLocalSearchParams<{ id?: string; focusDates?: string }>();
+  const params = useLocalSearchParams<{
+    id?: string;
+    focusDates?: string;
+    ideaId?: string;
+  }>();
   const editId = params.id ? Number(params.id) : null;
+  const ideaId = params.ideaId ? Number(params.ideaId) : null;
   const isEdit = editId != null && Number.isFinite(editId);
+  const fromIdea = !isEdit && ideaId != null && Number.isFinite(ideaId);
   const focusDates = params.focusDates === '1';
 
-  const [loading, setLoading] = useState(isEdit);
+  const [loading, setLoading] = useState(isEdit || fromIdea);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
+  const [ideaPlaceCount, setIdeaPlaceCount] = useState(0);
+  const [ideaAlreadyConverted, setIdeaAlreadyConverted] = useState(false);
 
   useEffect(() => {
-    if (!isEdit || editId == null) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const trip = await getTripById(db, editId);
-        if (cancelled) return;
-        if (!trip) {
-          Alert.alert('Поездка не найдена');
+    if (isEdit && editId != null) {
+      let cancelled = false;
+      (async () => {
+        try {
+          const trip = await getTripById(db, editId);
+          if (cancelled) return;
+          if (!trip) {
+            Alert.alert('Поездка не найдена');
+            router.back();
+            return;
+          }
+          setTitle(trip.title);
+          setDescription(trip.description ?? '');
+          setStartDate(trip.startDate);
+          setEndDate(trip.endDate);
+        } catch (e) {
+          console.error(e);
+          Alert.alert('Не удалось загрузить поездку');
           router.back();
-          return;
+        } finally {
+          if (!cancelled) setLoading(false);
         }
-        setTitle(trip.title);
-        setDescription(trip.description ?? '');
-        setStartDate(trip.startDate);
-        setEndDate(trip.endDate);
-      } catch (e) {
-        console.error(e);
-        Alert.alert('Не удалось загрузить поездку');
-        router.back();
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [db, editId, isEdit, router]);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (fromIdea && ideaId != null) {
+      let cancelled = false;
+      (async () => {
+        try {
+          const idea = await getTripIdeaById(db, ideaId);
+          if (cancelled) return;
+          if (!idea) {
+            Alert.alert('Идея не найдена');
+            router.back();
+            return;
+          }
+          setTitle(idea.title);
+          setDescription(idea.description ?? '');
+          setIdeaAlreadyConverted(idea.status === 'converted');
+          const links = await getTripIdeaPlaces(db, ideaId);
+          if (!cancelled) setIdeaPlaceCount(links.length);
+        } catch (e) {
+          console.error(e);
+          Alert.alert('Не удалось загрузить идею');
+          router.back();
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    return undefined;
+  }, [db, editId, fromIdea, ideaId, isEdit, router]);
 
   const onSave = async () => {
     const trimmed = title.trim();
@@ -105,6 +148,14 @@ export default function FormTripScreen() {
           }
         }
         router.replace({ pathname: '/trip/[id]', params: { id: String(editId) } });
+      } else if (fromIdea && ideaId != null) {
+        const trip = await convertIdeaToTrip(db, ideaId, {
+          title: trimmed,
+          description: description.trim() || null,
+          startDate: start,
+          endDate: end,
+        });
+        router.replace({ pathname: '/trip/[id]', params: { id: String(trip.id) } });
       } else {
         const trip = await createTrip(db, {
           title: trimmed,
@@ -163,7 +214,11 @@ export default function FormTripScreen() {
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
         <Text style={styles.title}>
-          {isEdit ? 'Редактирование' : 'Новая поездка'}
+          {isEdit
+            ? 'Редактирование'
+            : fromIdea
+              ? 'Поездка из идеи'
+              : 'Новая поездка'}
         </Text>
       </View>
 
@@ -201,6 +256,16 @@ export default function FormTripScreen() {
           value={endDate}
           onChange={setEndDate}
         />
+
+        {fromIdea ? (
+          <Text style={styles.ideaHint}>
+            В маршрут попадёт {pluralPlaces(ideaPlaceCount)} из идеи. Сами места
+            в базе не дублируются.
+            {ideaAlreadyConverted
+              ? ' Из этой идеи уже создавалась поездка — появится ещё одна.'
+              : ''}
+          </Text>
+        ) : null}
 
         <Text style={styles.hint}>
           Вводите цифры — точки ДД.ММ.ГГ появятся сами. Или откройте календарь.
@@ -269,6 +334,13 @@ const styles = StyleSheet.create({
   area: {
     minHeight: 88,
     paddingTop: 14,
+  },
+  ideaHint: {
+    marginTop: -2,
+    marginBottom: 12,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.text,
   },
   hint: {
     marginTop: -4,

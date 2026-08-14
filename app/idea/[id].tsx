@@ -136,15 +136,23 @@ export default function IdeaCardScreen() {
       </Pressable>
 
       <Pressable
-        style={styles.primary}
+        style={idea.status === 'converted' ? styles.secondary : styles.primary}
         onPress={() =>
-          Alert.alert(
-            'Создать поездку',
-            'Превращение идеи в поездку — этап 6. Пока можно править список мест.'
-          )
+          router.push({
+            pathname: '/form/trip',
+            params: { ideaId: String(idea.id) },
+          })
         }
       >
-        <Text style={styles.primaryText}>Создать поездку</Text>
+        <Text
+          style={
+            idea.status === 'converted' ? styles.secondaryText : styles.primaryText
+          }
+        >
+          {idea.status === 'converted'
+            ? 'Создать ещё одну поездку'
+            : 'Создать поездку'}
+        </Text>
       </Pressable>
 
       <View style={styles.actions}>
@@ -336,6 +344,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 14,
     color: colors.textOnAccent,
+  },
+  secondary: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  secondaryText: {
+    fontWeight: '800',
+    fontSize: 14,
+    color: colors.text,
   },
   actions: {
     marginTop: 16,
