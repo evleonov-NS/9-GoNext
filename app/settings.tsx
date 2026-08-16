@@ -4,10 +4,17 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
 import { BackButton } from '@/components/chrome';
+import { IconPath } from '@/components/IconPath';
 import { Screen } from '@/components/Screen';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { formatAppVersion } from '@/constants/version';
-import { radii, type AppColors, type ThemeScheme } from '@/constants/theme';
+import {
+  ACCENT_OPTIONS,
+  contrastOn,
+  radii,
+  type AppColors,
+  type ThemeScheme,
+} from '@/constants/theme';
 import { countPlaces } from '@/repositories/placesRepository';
 import { countTrips } from '@/repositories/tripsRepository';
 import { getAllTripIdeas } from '@/repositories/tripIdeasRepository';
@@ -20,7 +27,7 @@ const THEME_OPTIONS: { id: ThemeScheme; label: string }[] = [
 export default function SettingsScreen() {
   const router = useRouter();
   const db = useSQLiteContext();
-  const { scheme, setScheme } = useAppTheme();
+  const { scheme, setScheme, accentId, setAccentId } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const [stats, setStats] = useState('загрузка…');
 
@@ -79,6 +86,34 @@ export default function SettingsScreen() {
         {scheme === 'dark' ? (
           <Text style={styles.themeHint}>В тёмной теме фоновое изображение скрыто.</Text>
         ) : null}
+
+        <Text style={[styles.rowLabel, styles.colorLabel]}>Основной цвет</Text>
+        <View style={styles.colorGrid}>
+          {ACCENT_OPTIONS.map((option) => {
+            const active = accentId === option.id;
+            return (
+              <Pressable
+                key={option.id}
+                style={[styles.swatch, active && styles.swatchActive]}
+                onPress={() => setAccentId(option.id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={option.label}
+              >
+                <View style={[styles.swatchFill, { backgroundColor: option.seed }]}>
+                  {active ? (
+                    <IconPath
+                      d="M5 13l4 4L19 7"
+                      size={16}
+                      color={contrastOn(option.seed)}
+                      strokeWidth={2.4}
+                    />
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
       <View style={styles.card}>
         <Text style={styles.rowLabel}>Версия</Text>
@@ -167,6 +202,32 @@ function createStyles(colors: AppColors) {
       fontSize: 12,
       lineHeight: 17,
       color: colors.textSecondary,
+    },
+    colorLabel: {
+      marginTop: 18,
+    },
+    colorGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginTop: 12,
+    },
+    swatch: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      padding: 2,
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    swatchActive: {
+      borderColor: colors.text,
+    },
+    swatchFill: {
+      flex: 1,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
   });
 }

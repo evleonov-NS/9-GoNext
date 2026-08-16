@@ -3,6 +3,27 @@ import type { MD3Theme } from 'react-native-paper';
 
 export type ThemeScheme = 'light' | 'dark';
 
+/** Десять семян основного цвета Paper (`colors.primary` / акцент UI). */
+export const ACCENT_OPTIONS = [
+  { id: 'forest', label: 'Лес', seed: '#3f5c46' },
+  { id: 'teal', label: 'Бирюза', seed: '#1a6b66' },
+  { id: 'ocean', label: 'Океан', seed: '#255a8c' },
+  { id: 'indigo', label: 'Индиго', seed: '#3d478a' },
+  { id: 'violet', label: 'Фиолет', seed: '#6b3d8a' },
+  { id: 'berry', label: 'Ягода', seed: '#8a3a5c' },
+  { id: 'terracotta', label: 'Терракота', seed: '#a4652c' },
+  { id: 'amber', label: 'Янтарь', seed: '#b07a14' },
+  { id: 'olive', label: 'Олива', seed: '#5a6b28' },
+  { id: 'slate', label: 'Сланец', seed: '#4a5568' },
+] as const;
+
+export type AccentId = (typeof ACCENT_OPTIONS)[number]['id'];
+export const DEFAULT_ACCENT_ID: AccentId = 'forest';
+
+export function isAccentId(value: string | null | undefined): value is AccentId {
+  return ACCENT_OPTIONS.some((option) => option.id === value);
+}
+
 /** Палитра из иллюстрации (assets/INTEGRATION_PROMPT.md) + тёмный вариант. */
 export type AppColors = {
   accent: string;
@@ -188,8 +209,94 @@ const fontConfig = configureFonts({
   },
 });
 
-export function paletteFor(scheme: ThemeScheme): AppColors {
-  return scheme === 'dark' ? darkColors : lightColors;
+function clampByte(n: number): number {
+  return Math.max(0, Math.min(255, Math.round(n)));
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const raw = hex.replace('#', '');
+  const n =
+    raw.length === 3
+      ? raw
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : raw;
+  return {
+    r: parseInt(n.slice(0, 2), 16),
+    g: parseInt(n.slice(2, 4), 16),
+    b: parseInt(n.slice(4, 6), 16),
+  };
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  return `#${[r, g, b].map((c) => clampByte(c).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function mixHex(a: string, b: string, t: number): string {
+  const from = hexToRgb(a);
+  const to = hexToRgb(b);
+  return rgbToHex(
+    from.r + (to.r - from.r) * t,
+    from.g + (to.g - from.g) * t,
+    from.b + (to.b - from.b) * t
+  );
+}
+
+function withAlpha(hex: string, alpha: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function relativeLuminance(hex: string): number {
+  const { r, g, b } = hexToRgb(hex);
+  const linear = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+}
+
+/** Текст/иконка на цветном кружке или кнопке акцента. */
+export function contrastOn(hex: string): string {
+  return relativeLuminance(hex) > 0.42 ? '#1a1814' : '#ffffff';
+}
+
+function applyAccent(base: AppColors, seed: string, scheme: ThemeScheme): AppColors {
+  if (scheme === 'dark') {
+    const accent = mixHex(seed, '#d8eadc', 0.4);
+    return {
+      ...base,
+      accent,
+      accentDark: mixHex(seed, '#e8f4ea', 0.55),
+      accentHover: mixHex(seed, '#c5dcc8', 0.28),
+      accentMuted: mixHex(seed, base.bg, 0.78),
+      accentSoft: mixHex(seed, base.bg, 0.86),
+      accentRing: withAlpha(accent, 0.32),
+      textOnAccent: contrastOn(accent),
+    };
+  }
+
+  return {
+    ...base,
+    accent: seed,
+    accentDark: mixHex(seed, '#000000', 0.28),
+    accentHover: mixHex(seed, '#000000', 0.16),
+    accentMuted: mixHex(seed, '#ffffff', 0.88),
+    accentSoft: mixHex(seed, base.bg, 0.82),
+    accentRing: withAlpha(seed, 0.22),
+    textOnAccent: contrastOn(seed),
+  };
+}
+
+export function paletteFor(
+  scheme: ThemeScheme,
+  accentId: AccentId = DEFAULT_ACCENT_ID
+): AppColors {
+  const base = scheme === 'dark' ? darkColors : lightColors;
+  if (accentId === DEFAULT_ACCENT_ID) return base;
+  const option = ACCENT_OPTIONS.find((item) => item.id === accentId) ?? ACCENT_OPTIONS[0];
+  return applyAccent(base, option.seed, scheme);
 }
 
 export function buildPaperTheme(scheme: ThemeScheme, palette: AppColors): MD3Theme {
@@ -205,6 +312,7 @@ export function buildPaperTheme(scheme: ThemeScheme, palette: AppColors): MD3The
       primaryContainer: palette.accentMuted,
       onPrimary: palette.textOnAccent,
       onPrimaryContainer: palette.accentDark,
+      inversePrimary: palette.accentDark,
       secondary: palette.hintButton,
       secondaryContainer: palette.hintBg,
       onSecondary: palette.textOnAccent,
