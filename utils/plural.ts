@@ -1,8 +1,14 @@
-/** Русское склонение «N место / места / мест». */
+import i18n from '@/i18n';
+
+/** Склонение «N место / места / мест» (и en: place / places). */
 export function pluralPlaces(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n} место`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${n} места`;
-  return `${n} мест`;
+  return i18n.t('plural.places', { count: n });
+}
+
+export function pluralIdeas(n: number): string {
+  return i18n.t('plural.ideas', { count: n });
+}
+
+export function pluralTrips(n: number): string {
+  return i18n.t('plural.trips', { count: n });
 }

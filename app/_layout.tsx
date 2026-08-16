@@ -6,36 +6,40 @@ import { PaperProvider, Text } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SQLiteProvider } from 'expo-sqlite';
 import { AddSheetProvider } from '@/components/AddSheetContext';
+import { LocaleProvider, useAppLocale } from '@/components/LocaleContext';
 import { ThemeProvider, useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { artwork } from '@/constants/artwork';
 import { DATABASE_NAME, initializeDatabase } from '@/database';
 import type { AppColors } from '@/constants/theme';
+import { useTranslation } from 'react-i18next';
 
 function DbLoading() {
   const { colors, showArtwork } = useAppTheme();
   const styles = useThemedStyles(createBootStyles);
+  const { t } = useTranslation();
   const source = Platform.OS === 'ios' ? artwork.bgIos : artwork.bgAndroid;
   if (!showArtwork) {
     return (
       <View style={styles.boot}>
         <ActivityIndicator color={colors.accent} size="large" />
-        <Text style={styles.bootText}>Открываем базу…</Text>
+        <Text style={styles.bootText}>{t('boot.openingDb')}</Text>
       </View>
     );
   }
   return (
     <ImageBackground source={source} style={styles.boot} resizeMode="cover">
       <ActivityIndicator color={colors.accent} size="large" />
-      <Text style={styles.bootText}>Открываем базу…</Text>
+      <Text style={styles.bootText}>{t('boot.openingDb')}</Text>
     </ImageBackground>
   );
 }
 
 function AppShell() {
-  const { paperTheme, colors, isDark, hydrated } = useAppTheme();
+  const { paperTheme, colors, isDark, hydrated: themeHydrated } = useAppTheme();
+  const { hydrated: localeHydrated } = useAppLocale();
   const styles = useThemedStyles(createBootStyles);
 
-  if (!hydrated) {
+  if (!themeHydrated || !localeHydrated) {
     return (
       <View style={styles.boot}>
         <ActivityIndicator color={colors.accent} size="large" />
@@ -82,7 +86,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AppShell />
+        <LocaleProvider>
+          <AppShell />
+        </LocaleProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

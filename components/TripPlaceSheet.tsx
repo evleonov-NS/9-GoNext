@@ -9,11 +9,12 @@ import {
   View,
 } from 'react-native';
 import { Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { PhotoGallery } from '@/components/PhotoGallery';
 import { FilterChip } from '@/components/ui';
-import { PLACE_CATEGORIES } from '@/constants/categories';
+import { categoryLabel } from '@/constants/categories';
 import { PLACE_PRIORITY_LIST } from '@/constants/priorities';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { radii, type AppColors } from '@/constants/theme';
@@ -56,6 +57,7 @@ export function TripPlaceSheet({
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [notes, setNotes] = useState('');
   const [photoBusy, setPhotoBusy] = useState(false);
   const tripPhotos = usePhotos({ tripPlaceId: item?.id ?? null });
@@ -66,20 +68,20 @@ export function TripPlaceSheet({
 
   const statusHint = useMemo(
     () => (item ? tripPlaceStatusLabel(item.status) : ''),
-    [item]
+    [item, t]
   );
 
   if (!item) return null;
-  const cat = PLACE_CATEGORIES[item.place.category];
+  const catLabel = categoryLabel(item.place.category);
   const meta = item.place.city
-    ? `${cat.label} · ${item.place.city}`
-    : cat.label;
+    ? `${catLabel} · ${item.place.city}`
+    : catLabel;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
         {/* Тап по затемнению закрывает — sheet не перехватывает весь экран */}
-        <Pressable style={styles.dismissArea} onPress={onClose} accessibilityLabel="Закрыть" />
+        <Pressable style={styles.dismissArea} onPress={onClose} accessibilityLabel={t('common.close')} />
 
         <View style={[styles.sheet, { paddingBottom: 12 + insets.bottom }]}>
           <View style={styles.handle} />
@@ -94,7 +96,7 @@ export function TripPlaceSheet({
               </View>
             </View>
             <Pressable style={styles.closeChip} onPress={onClose} hitSlop={8}>
-              <Text style={styles.closeChipText}>Закрыть</Text>
+              <Text style={styles.closeChipText}>{t('common.close')}</Text>
             </Pressable>
           </View>
 
@@ -104,36 +106,36 @@ export function TripPlaceSheet({
             bounces={false}
             contentContainerStyle={styles.scrollContent}
           >
-            <Text style={styles.label}>День</Text>
+            <Text style={styles.label}>{t('sheet.day')}</Text>
             <View style={styles.chips}>
               <FilterChip
-                label="Без дня"
+                label={t('sheet.noDay')}
                 active={item.dayNumber == null}
                 onPress={() => onChangeDay(null)}
               />
               {dayOptions.map((d) => (
                 <FilterChip
                   key={d}
-                  label={`День ${d}`}
+                  label={t('sheet.dayN', { day: d })}
                   active={item.dayNumber === d}
                   onPress={() => onChangeDay(d)}
                 />
               ))}
             </View>
 
-            <Text style={styles.label}>Приоритет</Text>
+            <Text style={styles.label}>{t('sheet.priority')}</Text>
             <View style={styles.chips}>
               {PLACE_PRIORITY_LIST.map((p) => (
                 <FilterChip
                   key={p.id}
-                  label={p.label}
+                  label={t(`priority.${p.id}`)}
                   active={item.priority === p.id}
                   onPress={() => onChangePriority(p.id)}
                 />
               ))}
             </View>
 
-            <Text style={styles.label}>Заметка</Text>
+            <Text style={styles.label}>{t('sheet.note')}</Text>
             <TextInput
               value={notes}
               onChangeText={setNotes}
@@ -141,13 +143,13 @@ export function TripPlaceSheet({
                 const next = notes.trim() || null;
                 if (next !== (item.notes ?? null)) onSaveNotes(next);
               }}
-              placeholder="Необязательно"
+              placeholder={t('common.optional')}
               placeholderTextColor={colors.textMuted}
               style={styles.notes}
               multiline
             />
 
-            <Text style={styles.label}>Фотографии</Text>
+            <Text style={styles.label}>{t('sheet.photos')}</Text>
             <View style={styles.photos}>
               <PhotoGallery
                 photos={tripPhotos.photos}
@@ -161,8 +163,8 @@ export function TripPlaceSheet({
                     } catch (e) {
                       console.error(e);
                       Alert.alert(
-                        'Фото',
-                        e instanceof Error ? e.message : 'Не удалось добавить фото'
+                        t('alerts.photo'),
+                        e instanceof Error ? e.message : t('alerts.addPhotoFailed')
                       );
                     } finally {
                       setPhotoBusy(false);
@@ -173,8 +175,8 @@ export function TripPlaceSheet({
                   void tripPhotos.remove(photo.id).catch((e) => {
                     console.error(e);
                     Alert.alert(
-                      'Фото',
-                      e instanceof Error ? e.message : 'Не удалось удалить фото'
+                      t('alerts.photo'),
+                      e instanceof Error ? e.message : t('alerts.deletePhotoFailed')
                     );
                   });
                 }}
@@ -188,42 +190,42 @@ export function TripPlaceSheet({
                 disabled={!canMoveUp}
                 onPress={() => onMove('up')}
               >
-                <Text style={styles.actionText}>↑ Выше</Text>
+                <Text style={styles.actionText}>{t('sheet.moveUp')}</Text>
               </Pressable>
               <Pressable
                 style={[styles.rowBtn, !canMoveDown && styles.disabled]}
                 disabled={!canMoveDown}
                 onPress={() => onMove('down')}
               >
-                <Text style={styles.actionText}>↓ Ниже</Text>
+                <Text style={styles.actionText}>{t('sheet.moveDown')}</Text>
               </Pressable>
             </View>
 
             {item.status !== 'visited' ? (
               <Pressable style={styles.primary} onPress={() => onSetStatus('visited')}>
-                <Text style={styles.primaryText}>Посещено</Text>
+                <Text style={styles.primaryText}>{t('sheet.visited')}</Text>
               </Pressable>
             ) : (
               <Pressable style={styles.action} onPress={() => onSetStatus('pending')}>
-                <Text style={styles.actionText}>Вернуть в «не посещено»</Text>
+                <Text style={styles.actionText}>{t('sheet.backToPending')}</Text>
               </Pressable>
             )}
 
             {item.status !== 'skipped' ? (
               <Pressable style={styles.action} onPress={() => onSetStatus('skipped')}>
-                <Text style={styles.actionText}>Пропустить</Text>
+                <Text style={styles.actionText}>{t('sheet.skip')}</Text>
               </Pressable>
             ) : (
               <Pressable style={styles.action} onPress={() => onSetStatus('pending')}>
-                <Text style={styles.actionText}>Отменить пропуск</Text>
+                <Text style={styles.actionText}>{t('sheet.undoSkip')}</Text>
               </Pressable>
             )}
 
             <Pressable style={styles.action} onPress={onOpenPlace}>
-              <Text style={styles.actionText}>Открыть карточку места</Text>
+              <Text style={styles.actionText}>{t('sheet.openPlace')}</Text>
             </Pressable>
             <Pressable style={styles.danger} onPress={onRemove}>
-              <Text style={styles.dangerText}>Удалить из поездки</Text>
+              <Text style={styles.dangerText}>{t('sheet.removeFromTrip')}</Text>
             </Pressable>
           </ScrollView>
         </View>

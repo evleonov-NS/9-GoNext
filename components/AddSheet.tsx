@@ -1,6 +1,7 @@
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { radii, type AppColors } from '@/constants/theme';
@@ -11,9 +12,9 @@ type Props = {
 };
 
 const ACTIONS = [
-  { label: '＋  Куда хочу поехать', href: '/form/idea' as const },
-  { label: '＋  Что хочу посетить', href: '/form/place' as const },
-  { label: '＋  Новую поездку', href: '/form/trip' as const },
+  { labelKey: 'addSheet.idea', href: '/form/idea' as const },
+  { labelKey: 'addSheet.place', href: '/form/place' as const },
+  { labelKey: 'addSheet.trip', href: '/form/trip' as const },
 ];
 
 export function AddSheet({ visible, onClose }: Props) {
@@ -21,6 +22,7 @@ export function AddSheet({ visible, onClose }: Props) {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const go = (href: (typeof ACTIONS)[number]['href']) => {
     onClose();
@@ -40,17 +42,15 @@ export function AddSheet({ visible, onClose }: Props) {
           onPress={(e) => e.stopPropagation()}
         >
           <View style={styles.handle} />
-          <Text style={styles.title}>Что добавить?</Text>
-          <Text style={styles.sub}>
-            Один быстрый вход вместо отдельных форм.
-          </Text>
+          <Text style={styles.title}>{t('addSheet.title')}</Text>
+          <Text style={styles.sub}>{t('addSheet.sub')}</Text>
           {ACTIONS.map((action) => (
             <Pressable
               key={action.href}
               style={styles.action}
               onPress={() => go(action.href)}
             >
-              <Text style={styles.actionText}>{action.label}</Text>
+              <Text style={styles.actionText}>{t(action.labelKey)}</Text>
             </Pressable>
           ))}
         </Pressable>

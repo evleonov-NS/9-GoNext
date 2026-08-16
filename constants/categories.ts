@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+
 export type PlaceCategoryId =
   | 'sight'
   | 'nature'
@@ -96,6 +98,14 @@ export const PLACE_CATEGORIES: Record<PlaceCategoryId, PlaceCategory> = {
 };
 
 export const PLACE_CATEGORY_LIST = Object.values(PLACE_CATEGORIES);
+
+export function categoryLabel(id: PlaceCategoryId): string {
+  return i18n.t(`category.${id}`);
+}
+
+export function categoryShortLabel(id: PlaceCategoryId): string {
+  return i18n.t(`categoryShort.${id}`);
+}
 
 export const NAV_ICONS = {
   home: 'M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z',

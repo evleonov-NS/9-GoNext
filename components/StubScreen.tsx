@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { BackButton } from '@/components/chrome';
 import { Screen } from '@/components/Screen';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
@@ -18,6 +19,7 @@ export function StubScreen({ eyebrow, title, body, children }: Props) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { t } = useTranslation();
 
   return (
     <Screen>
@@ -31,7 +33,7 @@ export function StubScreen({ eyebrow, title, body, children }: Props) {
       {body ? <Text style={styles.body}>{body}</Text> : null}
       {children}
       <Pressable style={styles.backLink} onPress={() => router.back()}>
-        <Text style={styles.backLinkText}>Назад</Text>
+        <Text style={styles.backLinkText}>{t('common.back')}</Text>
       </Pressable>
     </Screen>
   );

@@ -1,19 +1,9 @@
+import i18n from '@/i18n';
 import { addDays, toDateOnly } from '@/database/helpers';
 
-const MONTHS_SHORT = [
-  'янв',
-  'фев',
-  'мар',
-  'апр',
-  'мая',
-  'июн',
-  'июл',
-  'авг',
-  'сен',
-  'окт',
-  'ноя',
-  'дек',
-] as const;
+function monthShort(index: number): string {
+  return i18n.t(`dates.monthsShort.${index}`);
+}
 
 function parseDateOnly(iso: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
@@ -27,7 +17,7 @@ function parseDateOnly(iso: string): Date | null {
 
 function formatDayMonth(date: Date, withYear: boolean): string {
   const day = date.getDate();
-  const mon = MONTHS_SHORT[date.getMonth()];
+  const mon = monthShort(date.getMonth());
   if (withYear) return `${day} ${mon} ${date.getFullYear()}`;
   return `${day} ${mon}`;
 }
@@ -37,23 +27,28 @@ export function formatTripDatesHuman(
   startDate: string | null,
   endDate: string | null
 ): string {
-  if (!startDate && !endDate) return 'даты не указаны';
+  if (!startDate && !endDate) return i18n.t('dates.notSpecified');
   const start = startDate ? parseDateOnly(startDate) : null;
   const end = endDate ? parseDateOnly(endDate) : null;
   if (start && end) {
     const sameYear = start.getFullYear() === end.getFullYear();
     const sameMonth = sameYear && start.getMonth() === end.getMonth();
     if (sameMonth) {
-      return `${start.getDate()}–${end.getDate()} ${MONTHS_SHORT[end.getMonth()]} ${end.getFullYear()}`;
+      return i18n.t('dates.rangeSameMonth', {
+        start: start.getDate(),
+        end: end.getDate(),
+        month: monthShort(end.getMonth()),
+        year: end.getFullYear(),
+      });
     }
     if (sameYear) {
       return `${formatDayMonth(start, false)} – ${formatDayMonth(end, true)}`;
     }
     return `${formatDayMonth(start, true)} – ${formatDayMonth(end, true)}`;
   }
-  if (start) return `с ${formatDayMonth(start, true)}`;
-  if (end) return `до ${formatDayMonth(end, true)}`;
-  return 'даты не указаны';
+  if (start) return i18n.t('dates.from', { date: formatDayMonth(start, true) });
+  if (end) return i18n.t('dates.until', { date: formatDayMonth(end, true) });
+  return i18n.t('dates.notSpecified');
 }
 
 /** Число дней поездки включительно; null если дат нет. */

@@ -8,12 +8,12 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native-paper';
 import { useSQLiteContext } from 'expo-sqlite';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { BackButton, EmptyState } from '@/components/chrome';
 import { Screen } from '@/components/Screen';
-import { PLACE_CATEGORIES } from '@/constants/categories';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { radii, type AppColors } from '@/constants/theme';
 import { getAllPlaces } from '@/repositories/placesRepository';
@@ -34,6 +34,7 @@ export default function PickerScreen() {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { t } = useTranslation();
   const db = useSQLiteContext();
   const params = useLocalSearchParams<{ mode?: string; ideaId?: string; tripId?: string }>();
   const mode = params.mode === 'trip' ? 'trip' : 'idea';
@@ -46,19 +47,19 @@ export default function PickerScreen() {
   const [excluded, setExcluded] = useState<Set<number>>(new Set());
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState('');
-  const [targetLabel, setTargetLabel] = useState('В список');
+  const [targetLabel, setTargetLabel] = useState(() => t('picker.intoList'));
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       if (mode === 'idea') {
         if (ideaId == null || !Number.isFinite(ideaId)) {
-          Alert.alert('Нет идеи', 'Откройте picker из карточки идеи.');
+          Alert.alert(t('alerts.noIdeaTitle'), t('alerts.noIdeaBody'));
           router.back();
           return;
         }
         const idea = await getTripIdeaById(db, ideaId);
-        setTargetLabel(idea ? `В идею «${idea.title}»` : 'В идею');
+        setTargetLabel(idea ? t('picker.intoIdeaNamed', { title: idea.title }) : t('picker.intoIdea'));
         const [all, taken] = await Promise.all([
           getAllPlaces(db),
           getTripIdeaPlaceIds(db, ideaId),
@@ -68,12 +69,12 @@ export default function PickerScreen() {
         setSelected(new Set());
       } else {
         if (tripId == null || !Number.isFinite(tripId)) {
-          Alert.alert('Нет поездки', 'Откройте picker из карточки поездки.');
+          Alert.alert(t('alerts.noTripTitle'), t('alerts.noTripBody'));
           router.back();
           return;
         }
         const trip = await getTripById(db, tripId);
-        setTargetLabel(trip ? `В поездку «${trip.title}»` : 'В поездку');
+        setTargetLabel(trip ? t('picker.intoTripNamed', { title: trip.title }) : t('picker.intoTrip'));
         const [all, taken] = await Promise.all([
           getAllPlaces(db),
           getTripPlaceIds(db, tripId),
@@ -84,12 +85,12 @@ export default function PickerScreen() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось загрузить места');
+      Alert.alert(t('alerts.error'), e instanceof Error ? e.message : t('alerts.loadPlacesFailed'));
       router.back();
     } finally {
       setLoading(false);
     }
-  }, [db, ideaId, mode, router, tripId]);
+  }, [db, ideaId, mode, router, t, tripId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -125,19 +126,19 @@ export default function PickerScreen() {
         if (ideaId == null) return;
         const n = await addTripIdeaPlacesBulk(db, ideaId, [...selected]);
         if (n === 0) {
-          Alert.alert('Уже добавлено', 'Выбранные места уже есть в идее.');
+          Alert.alert(t('alerts.alreadyAdded'), t('alerts.alreadyInIdea'));
         }
       } else {
         if (tripId == null) return;
         const n = await addTripPlacesBulk(db, tripId, [...selected]);
         if (n === 0) {
-          Alert.alert('Уже добавлено', 'Выбранные места уже есть в поездке.');
+          Alert.alert(t('alerts.alreadyAdded'), t('alerts.alreadyInTrip'));
         }
       }
       router.back();
     } catch (e) {
       console.error(e);
-      Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось добавить');
+      Alert.alert(t('alerts.error'), e instanceof Error ? e.message : t('alerts.addFailed'));
     } finally {
       setSaving(false);
     }
@@ -157,14 +158,14 @@ export default function PickerScreen() {
         <BackButton onPress={() => router.back()} />
         <View style={styles.headerText}>
           <Text style={styles.eyebrow}>{targetLabel}</Text>
-          <Text style={styles.title}>Выбрать места</Text>
+          <Text style={styles.title}>{t('picker.title')}</Text>
         </View>
       </View>
 
       <TextInput
         value={search}
         onChangeText={setSearch}
-        placeholder="Поиск по местам"
+        placeholder={t('picker.search')}
         placeholderTextColor={colors.textMuted}
         style={styles.search}
         autoCorrect={false}
@@ -173,26 +174,25 @@ export default function PickerScreen() {
 
       {available.length === 0 ? (
         <EmptyState
-          title="Все места уже добавлены"
-          subtitle="Создайте новое место — оно появится и в общей базе."
-          actionLabel="Создать новое место"
+          title={t('picker.allAddedTitle')}
+          subtitle={t('picker.allAddedSub')}
+          actionLabel={t('picker.createPlace')}
           onAction={() => router.push('/form/place')}
         />
       ) : filtered.length === 0 ? (
         <EmptyState
-          title="Ничего не найдено"
-          subtitle="Попробуйте другой запрос или создайте новое место."
-          actionLabel="Создать новое место"
+          title={t('picker.notFoundTitle')}
+          subtitle={t('picker.notFoundSub')}
+          actionLabel={t('picker.createPlace')}
           onAction={() => router.push('/form/place')}
         />
       ) : (
         <View style={styles.list}>
           {filtered.map((place) => {
             const on = selected.has(place.id);
-            const cat = PLACE_CATEGORIES[place.category];
             const sub = place.city
-              ? `${place.city} · ${cat.shortLabel}`
-              : cat.shortLabel;
+              ? `${place.city} · ${t(`categoryShort.${place.category}`)}`
+              : t(`categoryShort.${place.category}`);
             return (
               <Pressable
                 key={place.id}
@@ -217,7 +217,7 @@ export default function PickerScreen() {
         style={styles.createLink}
         onPress={() => router.push('/form/place')}
       >
-        <Text style={styles.createLinkText}>+ Создать новое место</Text>
+        <Text style={styles.createLinkText}>{t('picker.createLink')}</Text>
       </Pressable>
 
       <Pressable
@@ -227,10 +227,10 @@ export default function PickerScreen() {
       >
         <Text style={styles.submitText}>
           {saving
-            ? 'Добавляем…'
+            ? t('picker.adding')
             : selected.size === 0
-              ? 'Выберите места'
-              : `Добавить ${selected.size}`}
+              ? t('picker.choose')
+              : t('picker.addCount', { count: selected.size })}
         </Text>
       </Pressable>
     </Screen>

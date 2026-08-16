@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native-paper';
 import { useSQLiteContext } from 'expo-sqlite';
 import { BackButton } from '@/components/chrome';
@@ -28,6 +29,7 @@ export default function FormIdeaScreen() {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { t } = useTranslation();
   const db = useSQLiteContext();
   const params = useLocalSearchParams<{ id?: string }>();
   const editId = params.id ? Number(params.id) : null;
@@ -47,7 +49,7 @@ export default function FormIdeaScreen() {
         const idea = await getTripIdeaById(db, editId);
         if (cancelled) return;
         if (!idea) {
-          Alert.alert('Идея не найдена');
+          Alert.alert(t('alerts.ideaNotFound'));
           router.back();
           return;
         }
@@ -56,7 +58,7 @@ export default function FormIdeaScreen() {
         setStatus(idea.status);
       } catch (e) {
         console.error(e);
-        Alert.alert('Не удалось загрузить идею');
+        Alert.alert(t('alerts.loadIdeaFailed'));
         router.back();
       } finally {
         if (!cancelled) setLoading(false);
@@ -70,7 +72,7 @@ export default function FormIdeaScreen() {
   const onSave = async () => {
     const trimmed = title.trim();
     if (!trimmed) {
-      Alert.alert('Нужно название', 'Укажите направление или идею маршрута.');
+      Alert.alert(t('alerts.needName'), t('alerts.needIdeaName'));
       return;
     }
     setSaving(true);
@@ -92,7 +94,7 @@ export default function FormIdeaScreen() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось сохранить');
+      Alert.alert(t('alerts.error'), e instanceof Error ? e.message : t('alerts.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -101,12 +103,12 @@ export default function FormIdeaScreen() {
   const onDelete = () => {
     if (!isEdit || editId == null) return;
     Alert.alert(
-      'Удалить идею?',
-      'Места останутся в общей базе «Места». Связи с идеей будут удалены.',
+      t('alerts.deleteIdeaTitle'),
+      t('alerts.deleteIdeaBody'),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Удалить',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -115,7 +117,7 @@ export default function FormIdeaScreen() {
                 router.replace('/want');
               } catch (e) {
                 console.error(e);
-                Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось удалить');
+                Alert.alert(t('alerts.error'), e instanceof Error ? e.message : t('alerts.deleteFailed'));
               }
             })();
           },
@@ -136,24 +138,24 @@ export default function FormIdeaScreen() {
     <Screen>
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
-        <Text style={styles.title}>{isEdit ? 'Редактирование' : 'Куда хочу поехать'}</Text>
+        <Text style={styles.title}>{isEdit ? t('form.edit') : t('form.newIdea')}</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>НАПРАВЛЕНИЕ</Text>
+        <Text style={styles.label}>{t('form.direction')}</Text>
         <TextInput
           value={title}
           onChangeText={setTitle}
-          placeholder="Стамбул, Алтай, Золотое кольцо"
+          placeholder={t('form.ideaTitlePh')}
           placeholderTextColor={colors.textMuted}
           style={styles.input}
         />
 
-        <Text style={styles.label}>ЗАМЕТКА — НЕОБЯЗАТЕЛЬНО</Text>
+        <Text style={styles.label}>{t('form.noteOptional')}</Text>
         <TextInput
           value={description}
           onChangeText={setDescription}
-          placeholder="Хочу на 4–5 дней, один день на азиатскую сторону"
+          placeholder={t('form.ideaDescPh')}
           placeholderTextColor={colors.textMuted}
           style={[styles.input, styles.area]}
           multiline
@@ -162,12 +164,12 @@ export default function FormIdeaScreen() {
 
         {isEdit ? (
           <>
-            <Text style={[styles.label, { marginBottom: 10 }]}>СТАТУС</Text>
+            <Text style={[styles.label, { marginBottom: 10 }]}>{t('form.status')}</Text>
             <View style={styles.chips}>
               {IDEA_STATUS_LIST.map((s) => (
                 <FilterChip
                   key={s.id}
-                  label={s.label}
+                  label={t(`ideaStatus.${s.id}`)}
                   active={status === s.id}
                   onPress={() => setStatus(s.id)}
                 />
@@ -182,13 +184,13 @@ export default function FormIdeaScreen() {
           disabled={saving}
         >
           <Text style={styles.submitText}>
-            {saving ? 'Сохраняем…' : isEdit ? 'Сохранить' : 'Сохранить идею'}
+            {saving ? t('common.saving') : isEdit ? t('common.save') : t('form.saveIdea')}
           </Text>
         </Pressable>
 
         {isEdit ? (
           <Pressable style={styles.deleteBtn} onPress={onDelete}>
-            <Text style={styles.deleteText}>Удалить идею</Text>
+            <Text style={styles.deleteText}>{t('form.deleteIdea')}</Text>
           </Pressable>
         ) : null}
       </View>

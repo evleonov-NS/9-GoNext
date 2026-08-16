@@ -10,26 +10,28 @@ import { IconPath } from '@/components/IconPath';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { NAV_ICONS } from '@/constants/categories';
 import { radii, type AppColors } from '@/constants/theme';
+import { useTranslation } from 'react-i18next';
 
 type TabKey = 'index' | 'want' | 'trips' | 'places';
 
-const TABS: { name: TabKey; label: string; icon: keyof typeof NAV_ICONS }[] = [
-  { name: 'index', label: 'Главная', icon: 'home' },
-  { name: 'want', label: 'Хочу', icon: 'want' },
-  { name: 'trips', label: 'Поездки', icon: 'trips' },
-  { name: 'places', label: 'Места', icon: 'places' },
+const TABS: { name: TabKey; labelKey: string; icon: keyof typeof NAV_ICONS }[] = [
+  { name: 'index', labelKey: 'nav.home', icon: 'home' },
+  { name: 'want', labelKey: 'nav.want', icon: 'want' },
+  { name: 'trips', labelKey: 'nav.trips', icon: 'trips' },
+  { name: 'places', labelKey: 'nav.places', icon: 'places' },
 ];
 
 function FloatingFab() {
   const { open } = useAddSheet();
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   return (
     <Pressable
       style={[styles.fab, { bottom: 100 + Math.max(insets.bottom - 10, 0) }]}
       onPress={open}
-      accessibilityLabel="Что добавить"
+      accessibilityLabel={t('nav.addWhat')}
     >
       <Text style={styles.fabText}>+</Text>
     </Pressable>
@@ -40,6 +42,7 @@ function PrototypeTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   return (
     <View
@@ -71,7 +74,7 @@ function PrototypeTabBar({ state, navigation }: BottomTabBarProps) {
               }}
             >
               <IconPath d={NAV_ICONS[tab.icon]} size={21} color={color} />
-              <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
+              <Text style={[styles.tabLabel, { color }]}>{t(tab.labelKey)}</Text>
             </Pressable>
           );
         })}
@@ -85,6 +88,7 @@ export default function TabsLayout() {
   const [mounted, setMounted] = useState(false);
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
 
   useEffect(() => {
     setMounted(true);
@@ -96,10 +100,10 @@ export default function TabsLayout() {
         tabBar={(props) => <PrototypeTabBar {...props} />}
         screenOptions={{ headerShown: false }}
       >
-        <Tabs.Screen name="index" options={{ title: 'Главная' }} />
-        <Tabs.Screen name="want" options={{ title: 'Хочу' }} />
-        <Tabs.Screen name="trips" options={{ title: 'Поездки' }} />
-        <Tabs.Screen name="places" options={{ title: 'Места' }} />
+        <Tabs.Screen name="index" options={{ title: t('nav.home') }} />
+        <Tabs.Screen name="want" options={{ title: t('nav.want') }} />
+        <Tabs.Screen name="trips" options={{ title: t('nav.trips') }} />
+        <Tabs.Screen name="places" options={{ title: t('nav.places') }} />
       </Tabs>
       {mounted ? <FloatingFab /> : null}
       <AddSheet visible={visible} onClose={close} />

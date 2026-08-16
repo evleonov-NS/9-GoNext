@@ -8,13 +8,14 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { BackButton } from '@/components/chrome';
 import { CoverImage } from '@/components/CoverImage';
 import { Screen } from '@/components/Screen';
 import { TripPlaceSheet } from '@/components/TripPlaceSheet';
 import { artwork } from '@/constants/artwork';
-import { PLACE_CATEGORIES } from '@/constants/categories';
 import { PLACE_PRIORITIES } from '@/constants/priorities';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { radii, type AppColors } from '@/constants/theme';
@@ -44,7 +45,8 @@ type DayGroup = {
 
 function groupByDay(
   places: TripPlaceRow[],
-  startDate: string | null
+  startDate: string | null,
+  t: TFunction
 ): DayGroup[] {
   const ordered = [...places].sort((a, b) => a.sortOrder - b.sortOrder);
   const dayMap = new Map<number, TripPlaceRow[]>();
@@ -63,12 +65,14 @@ function groupByDay(
   const days = [...dayMap.keys()].sort((a, b) => a - b);
   const groups: DayGroup[] = days.map((d) => {
     const dateLabel = formatSingleDate(dateForTripDay(startDate, d));
-    const title = dateLabel ? `День ${d} · ${dateLabel}` : `День ${d}`;
+    const title = dateLabel
+      ? t('trip.dayWithDate', { day: d, date: dateLabel })
+      : t('trip.dayN', { day: d });
     return { key: `d-${d}`, title, items: dayMap.get(d)! };
   });
 
   if (noDay.length > 0 || groups.length === 0) {
-    groups.push({ key: 'none', title: 'Без дня', items: noDay });
+    groups.push({ key: 'none', title: t('trip.noDay'), items: noDay });
   }
 
   return groups;
@@ -77,14 +81,15 @@ function groupByDay(
 function confirmStartConflict(
   activeTrip: Trip,
   nextTitle: string,
-  onConfirm: () => void
+  onConfirm: () => void,
+  t: TFunction
 ) {
   Alert.alert(
-    'Уже есть активная поездка',
-    `«${activeTrip.title}» ещё не завершена. Завершить её и начать «${nextTitle}»?`,
+    t('alerts.activeConflictTitle'),
+    t('alerts.activeConflictBody', { active: activeTrip.title, next: nextTitle }),
     [
-      { text: 'Отмена', style: 'cancel' },
-      { text: 'Завершить и начать', onPress: onConfirm },
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('alerts.finishAndStart'), onPress: onConfirm },
     ]
   );
 }
@@ -93,6 +98,7 @@ export default function TripCardScreen() {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { t } = useTranslation();
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
   const id = idParam ? Number(idParam) : null;
   const {
@@ -142,20 +148,20 @@ export default function TripCardScreen() {
   );
 
   const groups = useMemo(
-    () => (trip ? groupByDay(places, trip.startDate) : []),
-    [trip, places]
+    () => (trip ? groupByDay(places, trip.startDate, t) : []),
+    [trip, places, t]
   );
 
   const offerCompleteIfDone = (nextPending: number) => {
     if (!trip || trip.status !== 'active') return;
     if (nextPending > 0) return;
     Alert.alert(
-      'Маршрут пройден',
-      `Все места в «${trip.title}» отмечены. Завершить поездку?`,
+      t('alerts.routeDoneTitle'),
+      t('alerts.routeDoneBody', { title: trip.title }),
       [
-        { text: 'Позже', style: 'cancel' },
+        { text: t('common.later'), style: 'cancel' },
         {
-          text: 'Завершить',
+          text: t('alerts.complete'),
           onPress: () => {
             void complete();
           },
@@ -169,12 +175,12 @@ export default function TripCardScreen() {
     if (result.ok) return;
     if (result.reason === 'need_dates') {
       Alert.alert(
-        'Нужны даты',
-        'Чтобы начать поездку, укажите дату начала и окончания.',
+        t('alerts.needDatesTitle'),
+        t('alerts.needDatesBody'),
         [
-          { text: 'Отмена', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Указать даты',
+            text: t('alerts.setDates'),
             onPress: () =>
               router.push({
                 pathname: '/form/trip',
@@ -188,7 +194,7 @@ export default function TripCardScreen() {
     if (result.reason === 'active_conflict') {
       confirmStartConflict(result.activeTrip, trip!.title, () => {
         void runStart(true);
-      });
+      }, t);
     }
   };
 
@@ -198,7 +204,7 @@ export default function TripCardScreen() {
     if (result.reason === 'active_conflict') {
       confirmStartConflict(result.activeTrip, trip!.title, () => {
         void runReactivate(true);
-      });
+      }, t);
     }
   };
 
@@ -215,7 +221,7 @@ export default function TripCardScreen() {
       <Screen>
         <View style={styles.header}>
           <BackButton onPress={() => router.back()} />
-          <Text style={styles.error}>{error ?? 'Поездка не найдена'}</Text>
+          <Text style={styles.error}>{error ?? t('alerts.tripNotFound')}</Text>
         </View>
       </Screen>
     );
@@ -229,7 +235,7 @@ export default function TripCardScreen() {
         <BackButton onPress={() => router.back()} />
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
-            поездка · {tripStatusLabel(trip.status).toLowerCase()}
+            {t('trip.badge', { status: tripStatusLabel(trip.status).toLowerCase() })}
           </Text>
         </View>
       </View>
@@ -243,15 +249,15 @@ export default function TripCardScreen() {
       <View style={styles.stats}>
         <View>
           <Text style={styles.statValue}>{places.length}</Text>
-          <Text style={styles.statLabel}>мест</Text>
+          <Text style={styles.statLabel}>{t('trip.places')}</Text>
         </View>
         <View>
           <Text style={styles.statValue}>{visitedCount}</Text>
-          <Text style={styles.statLabel}>посещено</Text>
+          <Text style={styles.statLabel}>{t('trip.visited')}</Text>
         </View>
         <View>
           <Text style={styles.statValue}>{pendingCount}</Text>
-          <Text style={styles.statLabel}>осталось</Text>
+          <Text style={styles.statLabel}>{t('trip.left')}</Text>
         </View>
       </View>
 
@@ -259,18 +265,18 @@ export default function TripCardScreen() {
         {trip.status === 'active' ? (
           <>
             <Pressable style={styles.primary} onPress={() => router.push('/next')}>
-              <Text style={styles.primaryText}>Следующее место</Text>
+              <Text style={styles.primaryText}>{t('trip.nextPlace')}</Text>
             </Pressable>
             <Pressable
               style={styles.secondary}
               onPress={() =>
                 Alert.alert(
-                  'Завершить поездку?',
-                  `«${trip.title}» станет дневником. Продолжить?`,
+                  t('alerts.completeTripTitle'),
+                  t('alerts.completeTripBody', { title: trip.title }),
                   [
-                    { text: 'Отмена', style: 'cancel' },
+                    { text: t('common.cancel'), style: 'cancel' },
                     {
-                      text: 'Завершить',
+                      text: t('alerts.complete'),
                       onPress: () => {
                         void complete();
                       },
@@ -279,32 +285,32 @@ export default function TripCardScreen() {
                 )
               }
             >
-              <Text style={styles.secondaryText}>Завершить</Text>
+              <Text style={styles.secondaryText}>{t('trip.complete')}</Text>
             </Pressable>
           </>
         ) : null}
 
         {trip.status === 'planned' ? (
           <Pressable style={styles.primary} onPress={() => void runStart()}>
-            <Text style={styles.primaryText}>Начать поездку</Text>
+            <Text style={styles.primaryText}>{t('trip.start')}</Text>
           </Pressable>
         ) : null}
 
         {trip.status === 'completed' ? (
           <>
             <Pressable style={styles.secondary} onPress={() => router.push('/diary')}>
-              <Text style={styles.secondaryText}>Дневник</Text>
+              <Text style={styles.secondaryText}>{t('trip.diary')}</Text>
             </Pressable>
             <Pressable
               style={styles.primary}
               onPress={() =>
                 Alert.alert(
-                  'Вернуть в активные?',
-                  'Поездка снова станет текущей.',
+                  t('alerts.reactivateTitle'),
+                  t('alerts.reactivateBody'),
                   [
-                    { text: 'Отмена', style: 'cancel' },
+                    { text: t('common.cancel'), style: 'cancel' },
                     {
-                      text: 'Вернуть',
+                      text: t('alerts.reactivate'),
                       onPress: () => {
                         void runReactivate();
                       },
@@ -313,14 +319,14 @@ export default function TripCardScreen() {
                 )
               }
             >
-              <Text style={styles.primaryText}>Снова активная</Text>
+              <Text style={styles.primaryText}>{t('trip.reactivate')}</Text>
             </Pressable>
           </>
         ) : null}
       </View>
 
       <View style={styles.sectionRow}>
-        <Text style={styles.sectionTitle}>Маршрут</Text>
+        <Text style={styles.sectionTitle}>{t('trip.route')}</Text>
         <Text style={styles.sectionMeta}>{pluralPlaces(places.length)}</Text>
       </View>
 
@@ -329,17 +335,17 @@ export default function TripCardScreen() {
           <Text style={styles.day}>{group.title}</Text>
           <View style={styles.listCard}>
             {group.items.length === 0 ? (
-              <Text style={styles.emptyList}>Нет мест в этой группе</Text>
+              <Text style={styles.emptyList}>{t('trip.emptyGroup')}</Text>
             ) : (
               group.items.map((row, index) => {
-                const cat = PLACE_CATEGORIES[row.place.category];
+                const catShort = t(`categoryShort.${row.place.category}`);
                 const prio = PLACE_PRIORITIES[row.priority];
                 const statusBit =
                   row.status === 'pending'
                     ? null
                     : tripPlaceStatusLabel(row.status);
                 const sub = [
-                  row.place.city ?? cat.shortLabel,
+                  row.place.city ?? catShort,
                   statusBit,
                   row.notes,
                 ]
@@ -358,7 +364,7 @@ export default function TripCardScreen() {
                     </View>
                     <View style={[styles.prio, { backgroundColor: prio.bg }]}>
                       <Text style={[styles.prioText, { color: prio.fg }]}>
-                        {prio.label}
+                        {t(`priority.${row.priority}`)}
                       </Text>
                     </View>
                     <Text style={styles.more}>⋯</Text>
@@ -379,7 +385,7 @@ export default function TripCardScreen() {
           })
         }
       >
-        <Text style={styles.addBtnText}>+ Добавить место</Text>
+        <Text style={styles.addBtnText}>{t('trip.addPlace')}</Text>
       </Pressable>
 
       <Pressable
@@ -388,7 +394,7 @@ export default function TripCardScreen() {
           router.push({ pathname: '/form/trip', params: { id: String(trip.id) } })
         }
       >
-        <Text style={styles.editBtnText}>Изменить поездку</Text>
+        <Text style={styles.editBtnText}>{t('trip.edit')}</Text>
       </Pressable>
 
       <TripPlaceSheet
@@ -450,12 +456,12 @@ export default function TripCardScreen() {
           const name = sheetItem.place.name;
           const linkId = sheetItem.id;
           Alert.alert(
-            'Удалить из поездки?',
-            `«${name}» останется в общей базе «Места» — удалится только из маршрута этой поездки.`,
+            t('alerts.removeFromTripTitle'),
+            t('alerts.removeFromTripBody', { name }),
             [
-              { text: 'Отмена', style: 'cancel' },
+              { text: t('common.cancel'), style: 'cancel' },
               {
-                text: 'Удалить',
+                text: t('common.delete'),
                 style: 'destructive',
                 onPress: () => {
                   setSheetItem(null);

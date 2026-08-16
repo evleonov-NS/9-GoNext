@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { FadeToBackground } from '@/components/FadeToBackground';
 import { GlassView } from '@/components/GlassView';
 import { IconPath } from '@/components/IconPath';
@@ -15,6 +16,7 @@ type Props = {
 export function SettingsButton({ onPress, variant = 'solid' }: Props) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   const glass = variant === 'glass';
   const icon = (
     <IconPath
@@ -25,13 +27,17 @@ export function SettingsButton({ onPress, variant = 'solid' }: Props) {
   );
   if (glass) {
     return (
-      <Pressable onPress={onPress}>
+      <Pressable onPress={onPress} accessibilityLabel={t('common.settings')}>
         <GlassView style={styles.btnGlass}>{icon}</GlassView>
       </Pressable>
     );
   }
   return (
-    <Pressable style={styles.btn} onPress={onPress}>
+    <Pressable
+      style={styles.btn}
+      onPress={onPress}
+      accessibilityLabel={t('common.settings')}
+    >
       {icon}
     </Pressable>
   );
@@ -44,8 +50,9 @@ type BackButtonProps = {
 export function BackButton({ onPress }: BackButtonProps) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   return (
-    <Pressable style={styles.btn} onPress={onPress}>
+    <Pressable style={styles.btn} onPress={onPress} accessibilityLabel={t('common.back')}>
       <IconPath d="M15 19l-7-7 7-7" size={19} color={colors.textStrong} strokeWidth={2} />
     </Pressable>
   );

@@ -7,10 +7,11 @@ import {
   View,
 } from 'react-native';
 import { Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { FilterChip } from '@/components/ui';
-import { PLACE_CATEGORIES } from '@/constants/categories';
+import { categoryLabel } from '@/constants/categories';
 import { PLACE_PRIORITY_LIST } from '@/constants/priorities';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { radii, type AppColors } from '@/constants/theme';
@@ -45,6 +46,7 @@ export function IdeaPlaceSheet({
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -52,10 +54,10 @@ export function IdeaPlaceSheet({
   }, [item?.id, item?.notes]);
 
   if (!item) return null;
-  const cat = PLACE_CATEGORIES[item.place.category];
+  const catLabel = categoryLabel(item.place.category);
   const meta = item.place.city
-    ? `${cat.label} · ${item.place.city}`
-    : cat.label;
+    ? `${catLabel} · ${item.place.city}`
+    : catLabel;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -73,19 +75,19 @@ export function IdeaPlaceSheet({
             </View>
           </View>
 
-          <Text style={styles.label}>Приоритет</Text>
+          <Text style={styles.label}>{t('sheet.priority')}</Text>
           <View style={styles.chips}>
             {PLACE_PRIORITY_LIST.map((p) => (
               <FilterChip
                 key={p.id}
-                label={p.label}
+                label={t(`priority.${p.id}`)}
                 active={item.priority === p.id}
                 onPress={() => onChangePriority(p.id)}
               />
             ))}
           </View>
 
-          <Text style={styles.label}>Заметка</Text>
+          <Text style={styles.label}>{t('sheet.note')}</Text>
           <TextInput
             value={notes}
             onChangeText={setNotes}
@@ -93,7 +95,7 @@ export function IdeaPlaceSheet({
               const next = notes.trim() || null;
               if (next !== (item.notes ?? null)) onSaveNotes(next);
             }}
-            placeholder="Необязательно"
+            placeholder={t('common.optional')}
             placeholderTextColor={colors.textMuted}
             style={styles.notes}
             multiline
@@ -105,22 +107,22 @@ export function IdeaPlaceSheet({
               disabled={!canMoveUp}
               onPress={() => onMove('up')}
             >
-              <Text style={styles.secondaryText}>↑ Выше</Text>
+              <Text style={styles.secondaryText}>{t('sheet.moveUp')}</Text>
             </Pressable>
             <Pressable
               style={[styles.secondary, !canMoveDown && styles.disabled]}
               disabled={!canMoveDown}
               onPress={() => onMove('down')}
             >
-              <Text style={styles.secondaryText}>↓ Ниже</Text>
+              <Text style={styles.secondaryText}>{t('sheet.moveDown')}</Text>
             </Pressable>
           </View>
 
           <Pressable style={styles.secondary} onPress={onOpenPlace}>
-            <Text style={styles.secondaryText}>Открыть карточку места</Text>
+            <Text style={styles.secondaryText}>{t('sheet.openPlace')}</Text>
           </Pressable>
           <Pressable style={styles.danger} onPress={onRemove}>
-            <Text style={styles.dangerText}>Убрать из идеи</Text>
+            <Text style={styles.dangerText}>{t('sheet.removeFromIdea')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

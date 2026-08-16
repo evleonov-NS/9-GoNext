@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
+import i18n from '@/i18n';
 import type { Photo } from '@/types';
 import {
   getPhotosByTripPlaceId,
@@ -55,7 +56,7 @@ export function usePhotos(query: Query): {
           : await getPhotosForPlace(db, placeId!);
       setPhotos(rows);
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Ошибка чтения фото';
+      const message = e instanceof Error ? e.message : i18n.t('alerts.loadFailed');
       setError(message);
       console.error('[GoNext] photos load failed', e);
     } finally {

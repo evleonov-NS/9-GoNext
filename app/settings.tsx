@@ -2,9 +2,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSQLiteContext } from 'expo-sqlite';
 import { BackButton } from '@/components/chrome';
 import { IconPath } from '@/components/IconPath';
+import { useAppLocale } from '@/components/LocaleContext';
 import { Screen } from '@/components/Screen';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { formatAppVersion } from '@/constants/version';
@@ -15,21 +17,30 @@ import {
   type AppColors,
   type ThemeScheme,
 } from '@/constants/theme';
+import { SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
 import { countPlaces } from '@/repositories/placesRepository';
 import { countTrips } from '@/repositories/tripsRepository';
 import { getAllTripIdeas } from '@/repositories/tripIdeasRepository';
+import { pluralIdeas, pluralPlaces, pluralTrips } from '@/utils/plural';
 
-const THEME_OPTIONS: { id: ThemeScheme; label: string }[] = [
-  { id: 'light', label: 'Светлая' },
-  { id: 'dark', label: 'Тёмная' },
+const THEME_OPTIONS: { id: ThemeScheme; key: 'light' | 'dark' }[] = [
+  { id: 'light', key: 'light' },
+  { id: 'dark', key: 'dark' },
 ];
+
+const LANGUAGE_NATIVE: Record<AppLanguage, string> = {
+  ru: 'Русский',
+  en: 'English',
+};
 
 export default function SettingsScreen() {
   const router = useRouter();
   const db = useSQLiteContext();
   const { scheme, setScheme, accentId, setAccentId } = useAppTheme();
+  const { language, setLanguage } = useAppLocale();
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
-  const [stats, setStats] = useState('загрузка…');
+  const [stats, setStats] = useState(t('common.loading'));
 
   useEffect(() => {
     let cancelled = false;
@@ -40,17 +51,23 @@ export default function SettingsScreen() {
         getAllTripIdeas(db),
       ]);
       if (!cancelled) {
-        setStats(`${places} мест · ${ideas.length} идей · ${trips} поездок`);
+        setStats(
+          t('settings.stats', {
+            places: pluralPlaces(places),
+            ideas: pluralIdeas(ideas.length),
+            trips: pluralTrips(trips),
+          })
+        );
       }
     })().catch((e) => {
       if (!cancelled) {
-        setStats(e instanceof Error ? e.message : 'ошибка чтения');
+        setStats(e instanceof Error ? e.message : t('common.readError'));
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [db]);
+  }, [db, t, language]);
 
   return (
     <Screen>
@@ -58,15 +75,16 @@ export default function SettingsScreen() {
         <BackButton onPress={() => router.back()} />
         <View>
           <Text style={styles.eyebrow}>GoNext</Text>
-          <Text style={styles.title}>Настройки</Text>
+          <Text style={styles.title}>{t('settings.title')}</Text>
         </View>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.rowLabel}>Тема</Text>
+        <Text style={styles.rowLabel}>{t('settings.theme')}</Text>
         <View style={styles.themeRow}>
           {THEME_OPTIONS.map((option) => {
             const active = scheme === option.id;
+            const label = t(`settings.${option.key}`);
             return (
               <Pressable
                 key={option.id}
@@ -74,23 +92,24 @@ export default function SettingsScreen() {
                 onPress={() => setScheme(option.id)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
-                accessibilityLabel={option.label}
+                accessibilityLabel={label}
               >
                 <Text style={[styles.themeOptionText, active && styles.themeOptionTextActive]}>
-                  {option.label}
+                  {label}
                 </Text>
               </Pressable>
             );
           })}
         </View>
         {scheme === 'dark' ? (
-          <Text style={styles.themeHint}>В тёмной теме фоновое изображение скрыто.</Text>
+          <Text style={styles.themeHint}>{t('settings.darkHint')}</Text>
         ) : null}
 
-        <Text style={[styles.rowLabel, styles.colorLabel]}>Основной цвет</Text>
+        <Text style={[styles.rowLabel, styles.colorLabel]}>{t('settings.accent')}</Text>
         <View style={styles.colorGrid}>
           {ACCENT_OPTIONS.map((option) => {
             const active = accentId === option.id;
+            const label = t(`accent.${option.id}`);
             return (
               <Pressable
                 key={option.id}
@@ -98,7 +117,7 @@ export default function SettingsScreen() {
                 onPress={() => setAccentId(option.id)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
-                accessibilityLabel={option.label}
+                accessibilityLabel={label}
               >
                 <View style={[styles.swatchFill, { backgroundColor: option.seed }]}>
                   {active ? (
@@ -114,18 +133,40 @@ export default function SettingsScreen() {
             );
           })}
         </View>
+
+        <Text style={[styles.rowLabel, styles.colorLabel]}>{t('settings.language')}</Text>
+        <View style={styles.themeRow}>
+          {SUPPORTED_LANGUAGES.map((id) => {
+            const active = language === id;
+            const label = LANGUAGE_NATIVE[id];
+            return (
+              <Pressable
+                key={id}
+                style={[styles.themeOption, active && styles.themeOptionActive]}
+                onPress={() => setLanguage(id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={label}
+              >
+                <Text style={[styles.themeOptionText, active && styles.themeOptionTextActive]}>
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
       <View style={styles.card}>
-        <Text style={styles.rowLabel}>Версия</Text>
+        <Text style={styles.rowLabel}>{t('settings.version')}</Text>
         <Text style={styles.rowValue}>{formatAppVersion()}</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.rowLabel}>Данные (SQLite)</Text>
+        <Text style={styles.rowLabel}>{t('settings.data')}</Text>
         <Text style={styles.rowValue}>{stats}</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.rowLabel}>Экспорт</Text>
-        <Text style={styles.rowValue}>Заготовка · этап 10</Text>
+        <Text style={styles.rowLabel}>{t('settings.export')}</Text>
+        <Text style={styles.rowValue}>{t('settings.exportStub')}</Text>
       </View>
     </Screen>
   );

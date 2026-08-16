@@ -13,8 +13,10 @@ import DateTimePicker, {
 } from '@react-native-community/datetimepicker';
 import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { radii, type AppColors } from '@/constants/theme';
+import { dateLocaleTag } from '@/i18n';
 import {
   dateFromIso,
   displayFromIso,
@@ -40,13 +42,15 @@ export function DateField({
   label,
   value,
   onChange,
-  placeholder = 'ДД.ММ.ГГ',
+  placeholder,
   focused = false,
   autoFocus = false,
 }: Props) {
   const { colors, isDark } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
+  const { t, i18n } = useTranslation();
+  const datePlaceholder = placeholder ?? t('dates.placeholder');
   const [text, setText] = useState(() => displayFromIso(value));
   const [pickerOpen, setPickerOpen] = useState(false);
   const [draft, setDraft] = useState(() => dateFromIso(value));
@@ -117,7 +121,7 @@ export function DateField({
               setText(displayFromIso(value));
             }
           }}
-          placeholder={placeholder}
+          placeholder={datePlaceholder}
           placeholderTextColor={colors.textMuted}
           style={styles.input}
           keyboardType="number-pad"
@@ -130,7 +134,7 @@ export function DateField({
         <Pressable
           style={styles.calBtn}
           onPress={openPicker}
-          accessibilityLabel="Открыть календарь"
+          accessibilityLabel={t('dates.openCalendar')}
         >
           <MaterialCommunityIcons
             name="calendar-month"
@@ -139,7 +143,7 @@ export function DateField({
           />
         </Pressable>
       </View>
-      <Text style={styles.fieldHint}>Цифры — точки ДД.ММ.ГГ сами</Text>
+      <Text style={styles.fieldHint}>{t('dates.hint')}</Text>
 
       {pickerOpen && Platform.OS === 'android' ? (
         <DateTimePicker
@@ -158,11 +162,11 @@ export function DateField({
             <View style={[styles.iosSheet, { paddingBottom: 12 + insets.bottom }]}>
               <View style={styles.iosBar}>
                 <Pressable onPress={() => closeIosPicker(false)} hitSlop={8}>
-                  <Text style={styles.iosCancel}>Отмена</Text>
+                  <Text style={styles.iosCancel}>{t('common.cancel')}</Text>
                 </Pressable>
-                <Text style={styles.iosTitle}>Дата</Text>
+                <Text style={styles.iosTitle}>{t('common.date')}</Text>
                 <Pressable onPress={() => closeIosPicker(true)} hitSlop={8}>
-                  <Text style={styles.iosDone}>Готово</Text>
+                  <Text style={styles.iosDone}>{t('common.done')}</Text>
                 </Pressable>
               </View>
               <View style={styles.iosPickerWrap}>
@@ -173,7 +177,7 @@ export function DateField({
                   themeVariant={isDark ? 'dark' : 'light'}
                   accentColor={colors.accent}
                   onChange={onPickerChange}
-                  locale="ru-RU"
+                  locale={dateLocaleTag(i18n.language)}
                   style={styles.iosPicker}
                 />
               </View>
@@ -186,9 +190,9 @@ export function DateField({
         <Modal transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
           <Pressable style={styles.webOverlay} onPress={() => setPickerOpen(false)}>
             <Pressable style={styles.webCard} onPress={(e) => e.stopPropagation()}>
-              <Text style={styles.iosTitle}>Выберите дату</Text>
+              <Text style={styles.iosTitle}>{t('dates.pickDate')}</Text>
               <Text style={styles.webHint}>
-                На web введите дату в поле выше (ДД.ММ.ГГ) или укажите здесь:
+                {t('dates.webHint')}
               </Text>
               <TextInput
                 value={value ?? ''}
@@ -199,14 +203,14 @@ export function DateField({
                     setPickerOpen(false);
                   }
                 }}
-                placeholder="ГГГГ-ММ-ДД"
+                placeholder={t('dates.isoPlaceholder')}
                 placeholderTextColor={colors.textMuted}
                 style={styles.webInput}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
               <Pressable style={styles.webClose} onPress={() => setPickerOpen(false)}>
-                <Text style={styles.iosCancel}>Закрыть</Text>
+                <Text style={styles.iosCancel}>{t('common.close')}</Text>
               </Pressable>
             </Pressable>
           </Pressable>

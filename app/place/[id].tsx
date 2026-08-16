@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
 import { Snackbar, Text } from 'react-native-paper';
 import { IconPath } from '@/components/IconPath';
@@ -27,6 +28,7 @@ export default function PlaceCardScreen() {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { t } = useTranslation();
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
   const id = idParam ? Number(idParam) : null;
   const { place, trips, loading, error, update, remove } = usePlace(id);
@@ -44,7 +46,7 @@ export default function PlaceCardScreen() {
   const onCopy = async () => {
     if (!place || !coordsReady) return;
     await Clipboard.setStringAsync(coordsText);
-    setToast('Координаты скопированы');
+    setToast(t('toast.coordsCopied'));
   };
 
   const onOpenMap = async () => {
@@ -57,7 +59,7 @@ export default function PlaceCardScreen() {
       });
     } catch (e) {
       console.error(e);
-      Alert.alert('Не удалось открыть карту');
+      Alert.alert(t('alerts.mapFailed'));
     }
   };
 
@@ -69,7 +71,7 @@ export default function PlaceCardScreen() {
       else await placePhotos.addFromCamera({ placeId: id });
     } catch (e) {
       console.error(e);
-      Alert.alert('Фото', e instanceof Error ? e.message : 'Не удалось добавить фото');
+      Alert.alert(t('alerts.photo'), e instanceof Error ? e.message : t('alerts.addPhotoFailed'));
     } finally {
       setBusy(false);
     }
@@ -80,19 +82,19 @@ export default function PlaceCardScreen() {
       await placePhotos.remove(photoId);
     } catch (e) {
       console.error(e);
-      Alert.alert('Фото', e instanceof Error ? e.message : 'Не удалось удалить фото');
+      Alert.alert(t('alerts.photo'), e instanceof Error ? e.message : t('alerts.deletePhotoFailed'));
     }
   };
 
   const onDelete = () => {
     if (!place) return;
     Alert.alert(
-      'Удалить место?',
-      `«${place.name}» будет удалено из базы и из маршрутов поездок/идей.`,
+      t('alerts.deletePlaceTitle'),
+      t('alerts.deletePlaceBody', { name: place.name }),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Удалить',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -102,7 +104,7 @@ export default function PlaceCardScreen() {
                 router.back();
               } catch (e) {
                 console.error(e);
-                Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось удалить');
+                Alert.alert(t('alerts.error'), e instanceof Error ? e.message : t('alerts.deleteFailed'));
               } finally {
                 setBusy(false);
               }
@@ -126,7 +128,7 @@ export default function PlaceCardScreen() {
       <Screen>
         <View style={styles.header}>
           <BackButton onPress={() => router.back()} />
-          <Text style={styles.error}>{error ?? 'Место не найдено'}</Text>
+          <Text style={styles.error}>{error ?? t('alerts.placeNotFound')}</Text>
         </View>
       </Screen>
     );
@@ -137,7 +139,9 @@ export default function PlaceCardScreen() {
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
         <View style={[styles.catBadge, { backgroundColor: cat.bg }]}>
-          <Text style={[styles.catBadgeText, { color: cat.fg }]}>{cat.label}</Text>
+          <Text style={[styles.catBadgeText, { color: cat.fg }]}>
+            {t(`category.${place.category}`)}
+          </Text>
         </View>
       </View>
 
@@ -152,7 +156,7 @@ export default function PlaceCardScreen() {
       {place.description ? <Text style={styles.desc}>{place.description}</Text> : null}
 
       <View style={styles.photosBlock}>
-        <Text style={styles.sectionTitle}>Фотографии</Text>
+        <Text style={styles.sectionTitle}>{t('place.photos')}</Text>
         <PhotoGallery
           photos={placePhotos.photos}
           onAdd={(source) => void addPlacePhoto(source)}
@@ -163,31 +167,31 @@ export default function PlaceCardScreen() {
 
       {coordsReady ? (
         <View style={styles.coordsCard}>
-          <Text style={styles.coordsLabel}>КООРДИНАТЫ</Text>
+          <Text style={styles.coordsLabel}>{t('place.coords')}</Text>
           <Text style={styles.coordsValue}>{coordsText}</Text>
           <View style={styles.row}>
             <Pressable style={styles.ghostBtn} onPress={() => void onOpenMap()}>
-              <Text style={styles.ghostBtnText}>Открыть карту</Text>
+              <Text style={styles.ghostBtnText}>{t('place.openMap')}</Text>
             </Pressable>
             <Pressable style={styles.ghostBtn} onPress={() => void onCopy()}>
-              <Text style={styles.ghostBtnText}>Скопировать</Text>
+              <Text style={styles.ghostBtnText}>{t('place.copy')}</Text>
             </Pressable>
           </View>
           <Pressable
             style={[styles.ghostBtn, { marginTop: 9, flex: 0 }]}
             onPress={() => void onOpenMap()}
           >
-            <Text style={styles.ghostBtnText}>Навигатор</Text>
+            <Text style={styles.ghostBtnText}>{t('place.navigator')}</Text>
           </Pressable>
         </View>
       ) : (
         <View style={styles.noCoords}>
-          <Text style={styles.noCoordsTitle}>Координаты не указаны</Text>
+          <Text style={styles.noCoordsTitle}>{t('place.noCoordsTitle')}</Text>
           <Text style={styles.noCoordsSub}>
-            Карта откроется поиском по названию. Координаты можно добавить в любой момент.
+            {t('place.noCoordsSub')}
           </Text>
           <Pressable style={styles.ghostBtn} onPress={() => void onOpenMap()}>
-            <Text style={styles.ghostBtnText}>Открыть карту</Text>
+            <Text style={styles.ghostBtnText}>{t('place.openMap')}</Text>
           </Pressable>
           <Pressable
             style={[styles.ghostBtn, { marginTop: 9 }]}
@@ -195,7 +199,7 @@ export default function PlaceCardScreen() {
               router.push({ pathname: '/form/place', params: { id: String(place.id) } })
             }
           >
-            <Text style={styles.ghostBtnText}>Добавить координаты</Text>
+            <Text style={styles.ghostBtnText}>{t('place.addCoords')}</Text>
           </Pressable>
         </View>
       )}
@@ -209,7 +213,7 @@ export default function PlaceCardScreen() {
           }}
         >
           <Text style={[styles.toggleText, place.visitLater && styles.toggleTextActive]}>
-            Хочу посетить
+            {t('place.visitLater')}
           </Text>
         </Pressable>
         <Pressable
@@ -220,14 +224,14 @@ export default function PlaceCardScreen() {
           }}
         >
           <Text style={[styles.toggleText, place.liked && styles.toggleTextActive]}>
-            Понравилось
+            {t('place.liked')}
           </Text>
         </Pressable>
       </View>
 
       {trips.length > 0 ? (
         <View style={styles.tripsBlock}>
-          <Text style={styles.sectionTitle}>В каких поездках</Text>
+          <Text style={styles.sectionTitle}>{t('place.inTrips')}</Text>
           <View style={styles.tripsCard}>
             {trips.map((trip, index) => (
               <Pressable
@@ -273,10 +277,10 @@ export default function PlaceCardScreen() {
             router.push({ pathname: '/form/place', params: { id: String(place.id) } })
           }
         >
-          <Text style={styles.editBtnText}>Изменить</Text>
+          <Text style={styles.editBtnText}>{t('common.edit')}</Text>
         </Pressable>
         <Pressable style={styles.deleteBtn} onPress={onDelete} disabled={busy}>
-          <Text style={styles.deleteBtnText}>Удалить</Text>
+          <Text style={styles.deleteBtnText}>{t('common.delete')}</Text>
         </Pressable>
       </View>
 

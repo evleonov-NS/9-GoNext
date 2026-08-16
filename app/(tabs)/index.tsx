@@ -36,18 +36,21 @@ import { openPlaceOnMap } from '@/utils/maps';
 import { pluralPlaces } from '@/utils/plural';
 import { formatTripDates } from '@/utils/tripLabels';
 import { tripDurationDays, todayDateOnly } from '@/utils/tripDates';
+import { dateLocaleTag } from '@/i18n';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
-function formatToday() {
-  return new Date().toLocaleDateString('ru-RU', {
+function formatToday(language: string) {
+  return new Date().toLocaleDateString(dateLocaleTag(language), {
     day: 'numeric',
     month: 'long',
   });
 }
 
-function dayLabelForActive(trip: Trip): string {
-  if (!trip.startDate || !trip.endDate) return 'в пути';
+function dayLabelForActive(trip: Trip, t: TFunction): string {
+  if (!trip.startDate || !trip.endDate) return t('home.inTransit');
   const duration = tripDurationDays(trip.startDate, trip.endDate);
-  if (!duration) return 'в пути';
+  if (!duration) return t('home.inTransit');
   const today = todayDateOnly();
   const startParts = trip.startDate.split('-').map(Number);
   const start = new Date(startParts[0], startParts[1] - 1, startParts[2]);
@@ -60,26 +63,27 @@ function dayLabelForActive(trip: Trip): string {
     }
     if (d < today) day = i + 1;
   }
-  return `День ${day}`;
+  return t('home.dayN', { day });
 }
 
-function ideaHomeSub(idea: TripIdea): string {
+function ideaHomeSub(idea: TripIdea, t: TFunction): string {
   const line = idea.description?.trim().split('\n')[0]?.trim() ?? '';
-  if (!line) return 'Идея поездки';
+  if (!line) return t('home.ideaFallback');
   return line.length > 56 ? `${line.slice(0, 54)}…` : line;
 }
 
 function confirmStartConflict(
   activeTrip: Trip,
   nextTitle: string,
-  onConfirm: () => void
+  onConfirm: () => void,
+  t: TFunction
 ) {
   Alert.alert(
-    'Уже есть активная поездка',
-    `«${activeTrip.title}» ещё не завершена. Завершить её и начать «${nextTitle}»?`,
+    t('alerts.activeConflictTitle'),
+    t('alerts.activeConflictBody', { active: activeTrip.title, next: nextTitle }),
     [
-      { text: 'Отмена', style: 'cancel' },
-      { text: 'Завершить и начать', onPress: onConfirm },
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('alerts.finishAndStart'), onPress: onConfirm },
     ]
   );
 }
@@ -92,6 +96,7 @@ export default function HomeScreen() {
   const heroHeight = useHeroHeight();
   const { showArtwork } = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const { t, i18n } = useTranslation();
   const {
     active,
     activePending,
@@ -141,7 +146,7 @@ export default function HomeScreen() {
     if (result.reason === 'active_conflict') {
       confirmStartConflict(result.activeTrip, bannerTrip.title, () => {
         void runBannerStart(true);
-      });
+      }, t);
     }
   };
 
@@ -152,8 +157,8 @@ export default function HomeScreen() {
       <View onLayout={onHeroLayout}>
         <PageTitle
           tone="onHero"
-          eyebrow={`GoNext · ${formatToday()}`}
-          title="Куда дальше?"
+          eyebrow={`GoNext · ${formatToday(i18n.language)}`}
+          title={t('home.title')}
           right={
             <SettingsButton
               variant={showArtwork ? 'glass' : 'solid'}
@@ -164,21 +169,22 @@ export default function HomeScreen() {
 
         {bannerTrip ? (
           <GlassView style={styles.hint}>
-            <Text style={styles.hintEyebrow}>СЕГОДНЯ НАЧИНАЕТСЯ</Text>
+            <Text style={styles.hintEyebrow}>{t('home.bannerEyebrow')}</Text>
             <Text style={styles.hintTitle}>{bannerTrip.title}</Text>
             <Text style={styles.hintSub}>
-              {formatTripDates(bannerTrip.startDate, bannerTrip.endDate)}. Начать
-              поездку?
+              {t('home.bannerSub', {
+                dates: formatTripDates(bannerTrip.startDate, bannerTrip.endDate),
+              })}
             </Text>
             <View style={styles.hintRow}>
               <Pressable
                 style={styles.hintPrimary}
                 onPress={() => void runBannerStart()}
               >
-                <Text style={styles.hintPrimaryText}>Начать поездку</Text>
+                <Text style={styles.hintPrimaryText}>{t('home.startTrip')}</Text>
               </Pressable>
               <Pressable style={styles.hintLater} onPress={dismissBanner}>
-                <Text style={styles.hintLaterText}>Позже</Text>
+                <Text style={styles.hintLaterText}>{t('common.later')}</Text>
               </Pressable>
             </View>
           </GlassView>
@@ -190,9 +196,9 @@ export default function HomeScreen() {
       {active ? (
         <View style={styles.gap12}>
           <ActiveTripCard
-            dayLabel={dayLabelForActive(active)}
+            dayLabel={dayLabelForActive(active, t)}
             title={active.title}
-            nextName={nextPlaceName ?? 'все места пройдены'}
+            nextName={nextPlaceName ?? t('home.allPlacesDone')}
             leftAfter={Math.max(0, activePending - (nextPlaceName ? 1 : 0))}
             visited={activeVisited}
             left={activePending}
@@ -206,7 +212,7 @@ export default function HomeScreen() {
                 longitude: nextPlace.longitude,
               }).catch((e) => {
                 console.error(e);
-                Alert.alert('Не удалось открыть карту');
+                Alert.alert(t('home.mapError'));
               });
             }}
             onOpenTrip={() =>
@@ -234,9 +240,9 @@ export default function HomeScreen() {
       ) : showEmptyHero ? (
         <View style={styles.gap12}>
           <EmptyState
-            title="Куда хочется поехать?"
-            subtitle="Сохраните идею будущего путешествия."
-            actionLabel="Добавить"
+            title={t('home.emptyTitle')}
+            subtitle={t('home.emptySub')}
+            actionLabel={t('home.emptyAction')}
             onAction={open}
           />
         </View>
@@ -244,15 +250,15 @@ export default function HomeScreen() {
 
       <View style={styles.section}>
         <SectionHeader
-          title="Куда хочу поехать"
-          actionLabel="Все"
+          title={t('home.ideasTitle')}
+          actionLabel={t('common.all')}
           onAction={() => router.push('/want')}
         />
         {ideas.length === 0 ? (
           <Text style={styles.sectionEmpty}>
-            Пока нет направлений.{' '}
+            {t('home.ideasEmpty')}{' '}
             <Text style={styles.sectionEmptyLink} onPress={() => router.push('/form/idea')}>
-              Добавить идею
+              {t('home.ideasEmptyLink')}
             </Text>
           </Text>
         ) : (
@@ -267,7 +273,7 @@ export default function HomeScreen() {
                 <IdeaCard
                   key={idea.id}
                   title={idea.title}
-                  sub={ideaHomeSub(idea)}
+                  sub={ideaHomeSub(idea, t)}
                   countLabel={pluralPlaces(count)}
                   cover={ideaCoverForId(idea.id)}
                   onPress={() =>
@@ -285,15 +291,15 @@ export default function HomeScreen() {
 
       <View style={styles.section}>
         <SectionHeader
-          title="Что хочу посетить"
-          actionLabel="Все"
+          title={t('home.wantTitle')}
+          actionLabel={t('common.all')}
           onAction={() => router.push('/places')}
         />
         {wantPlaces.length === 0 ? (
           <Text style={styles.sectionEmpty}>
-            Отметьте места флагом «Хочу посетить».{' '}
+            {t('home.wantEmpty')}{' '}
             <Text style={styles.sectionEmptyLink} onPress={() => router.push('/places')}>
-              Открыть места
+              {t('home.wantEmptyLink')}
             </Text>
           </Text>
         ) : (

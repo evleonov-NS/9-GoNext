@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native-paper';
 import { PlaceRow } from '@/components/cards';
 import { CategoryIcon } from '@/components/CategoryIcon';
@@ -20,22 +21,23 @@ import { radii, type AppColors } from '@/constants/theme';
 import { usePlaces } from '@/hooks/usePlaces';
 import { textMatchesQuery } from '@/utils/keyboardLayout';
 
-const PLACE_TABS = ['Все', 'Хочу посетить', 'Посещённые', 'Понравилось'] as const;
+const PLACE_TABS = ['all', 'visitLater', 'visited', 'liked'] as const;
 
 export default function PlacesScreen() {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { t } = useTranslation();
   const { places, visitedIds, loading, error, update } = usePlaces();
-  const [tab, setTab] = useState<(typeof PLACE_TABS)[number]>('Все');
+  const [tab, setTab] = useState<(typeof PLACE_TABS)[number]>('all');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<PlaceCategoryId | null>(null);
 
   const filtered = useMemo(() => {
     return places.filter((place) => {
-      if (tab === 'Хочу посетить' && !place.visitLater) return false;
-      if (tab === 'Понравилось' && !place.liked) return false;
-      if (tab === 'Посещённые' && !visitedIds.has(place.id)) return false;
+      if (tab === 'visitLater' && !place.visitLater) return false;
+      if (tab === 'liked' && !place.liked) return false;
+      if (tab === 'visited' && !visitedIds.has(place.id)) return false;
       if (category && place.category !== category) return false;
 
       const haystack = `${place.name} ${place.city ?? ''}`;
@@ -46,11 +48,11 @@ export default function PlacesScreen() {
 
   return (
     <Screen tabBarPadding>
-      <PageTitle eyebrow="Личная база" title="Места" />
+      <PageTitle eyebrow={t('places.eyebrow')} title={t('places.title')} />
       <TextInput
         value={search}
         onChangeText={setSearch}
-        placeholder="Поиск по местам"
+        placeholder={t('places.search')}
         placeholderTextColor={colors.textMuted}
         style={styles.search}
         autoCorrect={false}
@@ -62,12 +64,12 @@ export default function PlacesScreen() {
         contentContainerStyle={styles.chips}
         style={styles.chipsScroll}
       >
-        {PLACE_TABS.map((label) => (
+        {PLACE_TABS.map((id) => (
           <FilterChip
-            key={label}
-            label={label}
-            active={tab === label}
-            onPress={() => setTab(label)}
+            key={id}
+            label={t(`places.tabs.${id}`)}
+            active={tab === id}
+            onPress={() => setTab(id)}
           />
         ))}
       </ScrollView>
@@ -89,7 +91,7 @@ export default function PlacesScreen() {
                 <CategoryIcon category={cat.id} size={44} />
               </View>
               <Text style={[styles.catLabel, active && styles.catLabelActive]}>
-                {cat.shortLabel}
+                {t(`categoryShort.${cat.id}`)}
               </Text>
             </Pressable>
           );
@@ -103,13 +105,11 @@ export default function PlacesScreen() {
       ) : filtered.length === 0 ? (
         <EmptyState
           illustrated={places.length === 0}
-          title={places.length === 0 ? 'Пока нет мест' : 'Ничего не найдено'}
+          title={places.length === 0 ? t('places.emptyTitle') : t('places.notFoundTitle')}
           subtitle={
-            places.length === 0
-              ? 'Добавьте место через «＋» — оно появится в общей базе.'
-              : 'Попробуйте другой запрос, фильтр или категорию.'
+            places.length === 0 ? t('places.emptySub') : t('places.notFoundSub')
           }
-          actionLabel={places.length === 0 ? 'Добавить место' : undefined}
+          actionLabel={places.length === 0 ? t('places.emptyAction') : undefined}
           onAction={
             places.length === 0 ? () => router.push('/form/place') : undefined
           }
@@ -117,7 +117,7 @@ export default function PlacesScreen() {
       ) : (
         <View style={styles.list}>
           <Text style={styles.meta}>
-            {filtered.length} из {places.length}
+            {t('common.of', { filtered: filtered.length, total: places.length })}
           </Text>
           {filtered.map((place) => (
             <PlaceRow

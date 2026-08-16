@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
 import { Snackbar, Text } from 'react-native-paper';
 import { BackButton, EmptyState } from '@/components/chrome';
@@ -24,12 +25,13 @@ import type { TripPlaceRow } from '@/hooks/useTrip';
 import { formatCoords, hasCoords } from '@/utils/coords';
 import { openPlaceOnMap } from '@/utils/maps';
 import { dateForTripDay, formatSingleDate } from '@/utils/tripDates';
+import { dateLocaleTag } from '@/i18n';
 
 type Mode = 'card' | 'visit' | 'done';
 
-function visitDateLabel(iso: string | null): string {
+function visitDateLabel(iso: string | null, language: string): string {
   if (!iso) {
-    return new Date().toLocaleDateString('ru-RU', {
+    return new Date().toLocaleDateString(dateLocaleTag(language), {
       day: 'numeric',
       month: 'long',
     });
@@ -43,6 +45,7 @@ export default function NextScreen() {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const {
     trip,
     next,
@@ -84,15 +87,17 @@ export default function NextScreen() {
   const dayLabel = useMemo(() => {
     if (!trip || !next?.dayNumber) return null;
     const dateLabel = formatSingleDate(dateForTripDay(trip.startDate, next.dayNumber));
-    return dateLabel ? `День ${next.dayNumber} · ${dateLabel}` : `День ${next.dayNumber}`;
-  }, [trip, next]);
+    return dateLabel
+      ? t('trip.dayWithDate', { day: next.dayNumber, date: dateLabel })
+      : t('trip.dayN', { day: next.dayNumber });
+  }, [trip, next, t]);
 
   const pendingAfterVisit = Math.max(0, pendingCount);
 
   const onCopy = async () => {
     if (!place || !coordsReady) return;
     await Clipboard.setStringAsync(coordsText);
-    setToast('Координаты скопированы');
+    setToast(t('toast.coordsCopied'));
   };
 
   const onOpenMap = async () => {
@@ -105,7 +110,7 @@ export default function NextScreen() {
       });
     } catch (e) {
       console.error(e);
-      Alert.alert('Не удалось открыть карту');
+      Alert.alert(t('alerts.mapFailed'));
     }
   };
 
@@ -122,7 +127,7 @@ export default function NextScreen() {
       else await visitPhotos.addFromCamera(link);
     } catch (e) {
       console.error(e);
-      Alert.alert('Фото', e instanceof Error ? e.message : 'Не удалось добавить фото');
+      Alert.alert(t('alerts.photo'), e instanceof Error ? e.message : t('alerts.addPhotoFailed'));
     } finally {
       setBusy(false);
     }
@@ -133,7 +138,7 @@ export default function NextScreen() {
       await visitPhotos.remove(id);
     } catch (e) {
       console.error(e);
-      Alert.alert('Фото', e instanceof Error ? e.message : 'Не удалось удалить фото');
+      Alert.alert(t('alerts.photo'), e instanceof Error ? e.message : t('alerts.deletePhotoFailed'));
     }
   };
 
@@ -166,7 +171,7 @@ export default function NextScreen() {
       setMode('visit');
     } catch (e) {
       console.error(e);
-      Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось отметить посещение');
+      Alert.alert(t('alerts.error'), e instanceof Error ? e.message : t('alerts.visitFailed'));
     } finally {
       setBusy(false);
     }
@@ -187,7 +192,7 @@ export default function NextScreen() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось пропустить место');
+      Alert.alert(t('alerts.error'), e instanceof Error ? e.message : t('alerts.skipFailed'));
     } finally {
       setBusy(false);
     }
@@ -200,7 +205,7 @@ export default function NextScreen() {
       await goAfterVisit(visited);
     } catch (e) {
       console.error(e);
-      Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось сохранить');
+      Alert.alert(t('alerts.error'), e instanceof Error ? e.message : t('alerts.saveFailed'));
     } finally {
       setBusy(false);
     }
@@ -227,15 +232,15 @@ export default function NextScreen() {
   };
 
   const onComplete = () => {
-    const title = doneTitle ?? trip?.title ?? 'поездку';
+    const title = doneTitle ?? trip?.title ?? t('next.completeFallback');
     const tripId = doneTripId ?? trip?.id;
     Alert.alert(
-      'Завершить поездку?',
-      `«${title}» станет дневником. Продолжить?`,
+      t('alerts.completeTripTitle'),
+      t('alerts.completeTripBody', { title }),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Завершить',
+          text: t('alerts.complete'),
           onPress: () => {
             void (async () => {
               setBusy(true);
@@ -252,8 +257,8 @@ export default function NextScreen() {
               } catch (e) {
                 console.error(e);
                 Alert.alert(
-                  'Ошибка',
-                  e instanceof Error ? e.message : 'Не удалось завершить поездку'
+                  t('alerts.error'),
+                  e instanceof Error ? e.message : t('alerts.completeFailed')
                 );
               } finally {
                 setBusy(false);
@@ -300,9 +305,9 @@ export default function NextScreen() {
           <BackButton onPress={() => router.back()} />
         </View>
         <EmptyState
-          title="Нет активной поездки"
-          subtitle="Режим «Следующее место» работает, пока поездка в статусе «текущая»."
-          actionLabel="К поездкам"
+          title={t('next.noActiveTitle')}
+          subtitle={t('next.noActiveSub')}
+          actionLabel={t('next.toTrips')}
           onAction={() => router.push('/trips')}
         />
       </Screen>
@@ -316,8 +321,8 @@ export default function NextScreen() {
         <View style={styles.header}>
           <BackButton onPress={() => void onBackFromVisit()} />
           <View style={styles.headerText}>
-            <Text style={styles.eyebrow}>{trip?.title ?? 'Поездка'}</Text>
-            <Text style={styles.title}>Посещено</Text>
+            <Text style={styles.eyebrow}>{trip?.title ?? t('next.tripFallback')}</Text>
+            <Text style={styles.title}>{t('next.visited')}</Text>
           </View>
         </View>
 
@@ -325,13 +330,13 @@ export default function NextScreen() {
           <Text style={styles.checkMark}>✓</Text>
         </View>
         <Text style={styles.visitName}>{visited.place.name}</Text>
-        <Text style={styles.visitDate}>{visitDateLabel(visited.visitDate)}</Text>
+        <Text style={styles.visitDate}>{visitDateLabel(visited.visitDate, i18n.language)}</Text>
 
-        <Text style={styles.label}>Как впечатления?</Text>
+        <Text style={styles.label}>{t('next.impressions')}</Text>
         <TextInput
           value={notes}
           onChangeText={setNotes}
-          placeholder="Необязательно"
+          placeholder={t('common.optional')}
           placeholderTextColor={colors.textMuted}
           style={styles.notes}
           multiline
@@ -352,7 +357,7 @@ export default function NextScreen() {
           disabled={busy}
           onPress={() => promptPhotoSource((source) => void addVisitPhoto(source))}
         >
-          <Text style={styles.secondaryText}>+ Добавить фото</Text>
+          <Text style={styles.secondaryText}>{t('next.addPhoto')}</Text>
         </Pressable>
 
         <Pressable
@@ -360,7 +365,7 @@ export default function NextScreen() {
           onPress={() => setLiked((v) => !v)}
         >
           <Text style={[styles.likeText, liked && styles.likeTextActive]}>
-            {liked ? '♥ Понравилось' : '♡ Отметить «понравилось»'}
+            {liked ? t('next.likedOn') : t('next.likedOff')}
           </Text>
         </Pressable>
 
@@ -370,7 +375,7 @@ export default function NextScreen() {
           onPress={() => void onContinue()}
         >
           <Text style={styles.primaryText}>
-            {lastPending ? 'Все места пройдены' : 'К следующему месту'}
+            {lastPending ? t('next.allDone') : t('next.toNext')}
           </Text>
         </Pressable>
 
@@ -387,24 +392,27 @@ export default function NextScreen() {
   }
 
   if (showingDone) {
-    const title = doneTitle ?? trip?.title ?? 'Поездка';
+    const title = doneTitle ?? trip?.title ?? t('next.tripFallback');
     return (
       <Screen>
         <View style={styles.header}>
           <BackButton onPress={() => router.back()} />
           <View style={styles.headerText}>
             <Text style={styles.eyebrow}>{title}</Text>
-            <Text style={styles.title}>Все места пройдены</Text>
+            <Text style={styles.title}>{t('next.allDone')}</Text>
           </View>
         </View>
         <EmptyState
-          title="Маршрут пройден"
-          subtitle={`Посещено ${visitedCount} из ${totalCount || visitedCount}. Можно завершить поездку — она станет дневником.`}
-          actionLabel="Завершить поездку"
+          title={t('next.routeDoneTitle')}
+          subtitle={t('next.routeDoneSub', {
+            visited: visitedCount,
+            total: totalCount || visitedCount,
+          })}
+          actionLabel={t('next.completeTrip')}
           onAction={onComplete}
         />
         <Pressable style={styles.linkBtn} onPress={openTrip}>
-          <Text style={styles.linkBtnText}>Открыть маршрут</Text>
+          <Text style={styles.linkBtnText}>{t('next.openRoute')}</Text>
         </Pressable>
       </Screen>
     );
@@ -415,21 +423,21 @@ export default function NextScreen() {
       <Screen>
         <View style={styles.header}>
           <BackButton onPress={() => router.back()} />
-          <Text style={styles.error}>Место не найдено</Text>
+          <Text style={styles.error}>{t('alerts.placeNotFound')}</Text>
         </View>
       </Screen>
     );
   }
 
-  const meta = [place.city, cat.label].filter(Boolean).join(' · ');
+  const meta = [place.city, t(`category.${place.category}`)].filter(Boolean).join(' · ');
 
   return (
     <Screen>
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
         <View style={styles.headerText}>
-          <Text style={styles.eyebrow}>{trip?.title ?? 'Поездка'}</Text>
-          <Text style={styles.title}>Следующее место</Text>
+          <Text style={styles.eyebrow}>{trip?.title ?? t('next.tripFallback')}</Text>
+          <Text style={styles.title}>{t('next.title')}</Text>
         </View>
       </View>
 
@@ -449,31 +457,31 @@ export default function NextScreen() {
 
       {coordsReady ? (
         <View style={styles.coordsCard}>
-          <Text style={styles.coordsLabel}>КООРДИНАТЫ</Text>
+          <Text style={styles.coordsLabel}>{t('next.coords')}</Text>
           <Text style={styles.coordsValue}>{coordsText}</Text>
           <View style={styles.row}>
             <Pressable style={styles.ghostBtn} onPress={() => void onOpenMap()}>
-              <Text style={styles.ghostBtnText}>Открыть карту</Text>
+              <Text style={styles.ghostBtnText}>{t('next.openMap')}</Text>
             </Pressable>
             <Pressable style={styles.ghostBtn} onPress={() => void onCopy()}>
-              <Text style={styles.ghostBtnText}>Скопировать</Text>
+              <Text style={styles.ghostBtnText}>{t('next.copy')}</Text>
             </Pressable>
           </View>
           <Pressable
             style={[styles.ghostBtn, { marginTop: 9, flex: 0 }]}
             onPress={() => void onOpenMap()}
           >
-            <Text style={styles.ghostBtnText}>Навигатор</Text>
+            <Text style={styles.ghostBtnText}>{t('next.navigator')}</Text>
           </Pressable>
         </View>
       ) : (
         <View style={styles.noCoords}>
-          <Text style={styles.noCoordsTitle}>Координаты не указаны</Text>
+          <Text style={styles.noCoordsTitle}>{t('next.noCoordsTitle')}</Text>
           <Text style={styles.noCoordsSub}>
-            Карта откроется поиском по названию. Координаты можно добавить в карточке места.
+            {t('next.noCoordsSub')}
           </Text>
           <Pressable style={styles.ghostBtn} onPress={() => void onOpenMap()}>
-            <Text style={styles.ghostBtnText}>Открыть карту</Text>
+            <Text style={styles.ghostBtnText}>{t('next.openMap')}</Text>
           </Pressable>
         </View>
       )}
@@ -484,14 +492,14 @@ export default function NextScreen() {
           disabled={busy}
           onPress={() => void onMarkVisited()}
         >
-          <Text style={styles.primaryText}>Посещено</Text>
+          <Text style={styles.primaryText}>{t('sheet.visited')}</Text>
         </Pressable>
         <Pressable
           style={[styles.secondary, busy && styles.disabled]}
           disabled={busy}
           onPress={() => void onSkip()}
         >
-          <Text style={styles.secondaryText}>Пропустить</Text>
+          <Text style={styles.secondaryText}>{t('next.skip')}</Text>
         </Pressable>
       </View>
 

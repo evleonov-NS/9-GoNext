@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { PlacePriority, TripIdeaStatus } from '@/types';
 
 export const PLACE_PRIORITY_LIST: {
@@ -16,7 +17,7 @@ export const PLACE_PRIORITIES = Object.fromEntries(
 ) as Record<PlacePriority, (typeof PLACE_PRIORITY_LIST)[number]>;
 
 export function priorityLabel(priority: PlacePriority): string {
-  return PLACE_PRIORITIES[priority]?.label ?? priority;
+  return i18n.t(`priority.${priority}`);
 }
 
 export const IDEA_STATUS_LIST: {
@@ -29,7 +30,7 @@ export const IDEA_STATUS_LIST: {
 ];
 
 export function ideaStatusLabel(status: TripIdeaStatus): string {
-  return IDEA_STATUS_LIST.find((s) => s.id === status)?.label ?? status;
+  return i18n.t(`ideaStatus.${status}`);
 }
 
 /** Детерминированный градиент обложки идеи по id (пока нет coverPhoto). */

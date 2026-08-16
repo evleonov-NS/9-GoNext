@@ -1,46 +1,18 @@
+import i18n from '@/i18n';
 import type { TripPlaceStatus, TripStatus } from '@/types';
 import { formatTripDatesHuman } from '@/utils/tripDates';
 
 export function tripStatusLabel(status: TripStatus): string {
-  switch (status) {
-    case 'active':
-      return 'Текущая';
-    case 'planned':
-      return 'План';
-    case 'completed':
-      return 'Завершена';
-    default:
-      return status;
-  }
+  return i18n.t(`tripStatus.${status}`);
 }
 
 /** Бейдж в списке поездок (как в прототипе). */
 export function tripListStatusLabel(status: TripStatus): string {
-  switch (status) {
-    case 'active':
-      return 'АКТИВНАЯ';
-    case 'planned':
-      return 'ПЛАН';
-    case 'completed':
-      return 'ДНЕВНИК';
-    default: {
-      const _exhaustive: never = status;
-      return String(_exhaustive);
-    }
-  }
+  return i18n.t(`tripListStatus.${status}`);
 }
 
 export function tripPlaceStatusLabel(status: TripPlaceStatus): string {
-  switch (status) {
-    case 'pending':
-      return 'Не посещено';
-    case 'visited':
-      return 'Посещено';
-    case 'skipped':
-      return 'Пропущено';
-    default:
-      return status;
-  }
+  return i18n.t(`tripPlaceStatus.${status}`);
 }
 
 export function formatTripDates(startDate: string | null, endDate: string | null): string {

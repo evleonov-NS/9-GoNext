@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native-paper';
 import { useSQLiteContext } from 'expo-sqlite';
 import { BackButton } from '@/components/chrome';
@@ -31,6 +32,7 @@ export default function FormTripScreen() {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { t } = useTranslation();
   const db = useSQLiteContext();
   const params = useLocalSearchParams<{
     id?: string;
@@ -60,7 +62,7 @@ export default function FormTripScreen() {
           const trip = await getTripById(db, editId);
           if (cancelled) return;
           if (!trip) {
-            Alert.alert('Поездка не найдена');
+            Alert.alert(t('alerts.tripNotFound'));
             router.back();
             return;
           }
@@ -70,7 +72,7 @@ export default function FormTripScreen() {
           setEndDate(trip.endDate);
         } catch (e) {
           console.error(e);
-          Alert.alert('Не удалось загрузить поездку');
+          Alert.alert(t('alerts.loadTripFailed'));
           router.back();
         } finally {
           if (!cancelled) setLoading(false);
@@ -88,7 +90,7 @@ export default function FormTripScreen() {
           const idea = await getTripIdeaById(db, ideaId);
           if (cancelled) return;
           if (!idea) {
-            Alert.alert('Идея не найдена');
+            Alert.alert(t('alerts.ideaNotFound'));
             router.back();
             return;
           }
@@ -99,7 +101,7 @@ export default function FormTripScreen() {
           if (!cancelled) setIdeaPlaceCount(links.length);
         } catch (e) {
           console.error(e);
-          Alert.alert('Не удалось загрузить идею');
+          Alert.alert(t('alerts.loadIdeaFailed'));
           router.back();
         } finally {
           if (!cancelled) setLoading(false);
@@ -116,18 +118,18 @@ export default function FormTripScreen() {
   const onSave = async () => {
     const trimmed = title.trim();
     if (!trimmed) {
-      Alert.alert('Нужно название', 'Укажите название поездки.');
+      Alert.alert(t('alerts.needName'), t('alerts.needTripName'));
       return;
     }
 
     const start = startDate;
     const end = endDate;
     if ((start && !end) || (!start && end)) {
-      Alert.alert('Даты', 'Укажите обе даты (ДД.ММ.ГГ) или оставьте обе пустыми.');
+      Alert.alert(t('alerts.dates'), t('alerts.datesBothOrNone'));
       return;
     }
     if (start && end && start > end) {
-      Alert.alert('Даты', 'Дата начала не может быть позже окончания.');
+      Alert.alert(t('alerts.dates'), t('alerts.datesOrder'));
       return;
     }
 
@@ -145,8 +147,8 @@ export default function FormTripScreen() {
           const cleared = await clearTripPlaceDaysBeyond(db, editId, duration);
           if (cleared > 0) {
             Alert.alert(
-              'Дни скорректированы',
-              `У ${cleared} мест сброшен день — он выходил за новую длительность поездки.`
+              t('alerts.daysAdjustedTitle'),
+              t('alerts.daysAdjustedBody', { count: cleared })
             );
           }
         }
@@ -172,7 +174,7 @@ export default function FormTripScreen() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось сохранить');
+      Alert.alert(t('alerts.error'), e instanceof Error ? e.message : t('alerts.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -181,12 +183,12 @@ export default function FormTripScreen() {
   const onDelete = () => {
     if (!isEdit || editId == null) return;
     Alert.alert(
-      'Удалить поездку?',
-      'Места останутся в общей базе. Маршрут и статусы посещений этой поездки будут удалены.',
+      t('alerts.deleteTripTitle'),
+      t('alerts.deleteTripBody'),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Удалить',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -195,7 +197,7 @@ export default function FormTripScreen() {
                 router.replace('/trips');
               } catch (e) {
                 console.error(e);
-                Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось удалить');
+                Alert.alert(t('alerts.error'), e instanceof Error ? e.message : t('alerts.deleteFailed'));
               }
             })();
           },
@@ -218,28 +220,28 @@ export default function FormTripScreen() {
         <BackButton onPress={() => router.back()} />
         <Text style={styles.title}>
           {isEdit
-            ? 'Редактирование'
+            ? t('form.edit')
             : fromIdea
-              ? 'Поездка из идеи'
-              : 'Новая поездка'}
+              ? t('form.tripFromIdea')
+              : t('form.newTrip')}
         </Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>НАЗВАНИЕ</Text>
+        <Text style={styles.label}>{t('form.name')}</Text>
         <TextInput
           value={title}
           onChangeText={setTitle}
-          placeholder="Карелия, Выборг на выходные"
+          placeholder={t('form.tripTitlePh')}
           placeholderTextColor={colors.textMuted}
           style={styles.input}
         />
 
-        <Text style={styles.label}>ОПИСАНИЕ — НЕОБЯЗАТЕЛЬНО</Text>
+        <Text style={styles.label}>{t('form.descriptionOptional')}</Text>
         <TextInput
           value={description}
           onChangeText={setDescription}
-          placeholder="Кратко о поездке"
+          placeholder={t('form.tripDescPh')}
           placeholderTextColor={colors.textMuted}
           style={[styles.input, styles.area]}
           multiline
@@ -247,7 +249,7 @@ export default function FormTripScreen() {
         />
 
         <DateField
-          label="ДАТА НАЧАЛА"
+          label={t('form.startDate')}
           value={startDate}
           onChange={setStartDate}
           focused={focusDates}
@@ -255,24 +257,20 @@ export default function FormTripScreen() {
         />
 
         <DateField
-          label="ДАТА ОКОНЧАНИЯ"
+          label={t('form.endDate')}
           value={endDate}
           onChange={setEndDate}
         />
 
         {fromIdea ? (
           <Text style={styles.ideaHint}>
-            В маршрут попадёт {pluralPlaces(ideaPlaceCount)} из идеи. Сами места
-            в базе не дублируются.
-            {ideaAlreadyConverted
-              ? ' Из этой идеи уже создавалась поездка — появится ещё одна.'
-              : ''}
+            {t('form.ideaHint', { places: pluralPlaces(ideaPlaceCount) })}
+            {ideaAlreadyConverted ? t('form.ideaHintAgain') : ''}
           </Text>
         ) : null}
 
         <Text style={styles.hint}>
-          Вводите цифры — точки ДД.ММ.ГГ появятся сами. Или откройте календарь.
-          Даты можно указать позже — для «Начать поездку» обе обязательны.
+          {t('form.datesHint')}
         </Text>
 
         <Pressable
@@ -281,13 +279,13 @@ export default function FormTripScreen() {
           disabled={saving}
         >
           <Text style={styles.submitText}>
-            {saving ? 'Сохраняем…' : isEdit ? 'Сохранить' : 'Создать поездку'}
+            {saving ? t('common.saving') : isEdit ? t('common.save') : t('form.createTrip')}
           </Text>
         </Pressable>
 
         {isEdit ? (
           <Pressable style={styles.deleteBtn} onPress={onDelete}>
-            <Text style={styles.deleteText}>Удалить поездку</Text>
+            <Text style={styles.deleteText}>{t('form.deleteTrip')}</Text>
           </Pressable>
         ) : null}
       </View>

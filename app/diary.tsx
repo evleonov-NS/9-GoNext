@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { BackButton } from '@/components/chrome';
 import { CoverImage } from '@/components/CoverImage';
 import { Screen } from '@/components/Screen';
@@ -11,24 +12,22 @@ import { radii, type AppColors } from '@/constants/theme';
 export default function DiaryScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { t } = useTranslation();
 
   return (
     <Screen contentStyle={styles.root}>
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
         <View style={styles.chip}>
-          <Text style={styles.chipText}>дневник поездки</Text>
+          <Text style={styles.chipText}>{t('diary.chip')}</Text>
         </View>
       </View>
       <CoverImage source={artwork.cover} style={styles.cover} />
-      <Text style={styles.title}>Карелия 2025</Text>
-      <Text style={styles.sub}>Июль 2025 · 7 мест · заготовка экрана</Text>
+      <Text style={styles.title}>{t('diary.title')}</Text>
+      <Text style={styles.sub}>{t('diary.sub')}</Text>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>День 1</Text>
-        <Text style={styles.cardBody}>
-          Заметки и фото живут в карточке поездки: посещённые места, мини-форма после «Посещено», карточка места.
-
-        </Text>
+        <Text style={styles.cardTitle}>{t('diary.day1')}</Text>
+        <Text style={styles.cardBody}>{t('diary.body')}</Text>
       </View>
     </Screen>
   );

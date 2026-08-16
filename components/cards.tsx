@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { CoverImage } from '@/components/CoverImage';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { useThemedStyles } from '@/components/ThemeContext';
-import type { PlaceCategoryId } from '@/constants/categories';
-import { PLACE_CATEGORIES } from '@/constants/categories';
+import { type PlaceCategoryId } from '@/constants/categories';
 import { artwork } from '@/constants/artwork';
 import { radii, type AppColors } from '@/constants/theme';
 
@@ -34,39 +34,40 @@ export function ActiveTripCard({
   onOpenTrip,
 }: ActiveTripCardProps) {
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   return (
     <View style={styles.active}>
       <View style={styles.activeGlow} />
       <View style={styles.activeInner}>
-        <Text style={styles.activeEyebrow}>ТЕКУЩАЯ ПОЕЗДКА · {dayLabel}</Text>
+        <Text style={styles.activeEyebrow}>{t('activeCard.eyebrow', { day: dayLabel })}</Text>
         <Text style={styles.activeTitle}>{title}</Text>
         <Text style={styles.activeSub}>
-          Следующее место — {nextName}. После него в маршруте ещё {leftAfter}.
+          {t('activeCard.sub', { name: nextName, left: leftAfter })}
         </Text>
         <View style={styles.stats}>
           <View>
             <Text style={styles.statValue}>{visited}</Text>
-            <Text style={styles.statLabel}>посещено</Text>
+            <Text style={styles.statLabel}>{t('activeCard.visited')}</Text>
           </View>
           <View>
             <Text style={styles.statValue}>{left}</Text>
-            <Text style={styles.statLabel}>осталось</Text>
+            <Text style={styles.statLabel}>{t('activeCard.left')}</Text>
           </View>
           <View>
             <Text style={styles.statValue}>{dates}</Text>
-            <Text style={styles.statLabel}>даты</Text>
+            <Text style={styles.statLabel}>{t('activeCard.dates')}</Text>
           </View>
         </View>
         <View style={styles.row}>
           <Pressable style={styles.primaryBtn} onPress={onNext}>
-            <Text style={styles.primaryBtnText}>Следующее место</Text>
+            <Text style={styles.primaryBtnText}>{t('activeCard.nextPlace')}</Text>
           </Pressable>
           <Pressable style={styles.ghostBtn} onPress={onNavigator}>
-            <Text style={styles.ghostBtnText}>Навигатор</Text>
+            <Text style={styles.ghostBtnText}>{t('activeCard.navigator')}</Text>
           </Pressable>
         </View>
         <Pressable style={styles.linkBtn} onPress={onOpenTrip}>
-          <Text style={styles.linkBtnText}>Открыть маршрут поездки</Text>
+          <Text style={styles.linkBtnText}>{t('activeCard.openRoute')}</Text>
         </Pressable>
       </View>
     </View>
@@ -87,15 +88,16 @@ export function PlannedTripCard({
   onOpen,
 }: PlannedTripCardProps) {
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
   return (
     <View style={styles.planned}>
-      <Text style={styles.plannedEyebrow}>СЛЕДУЮЩАЯ ПОЕЗДКА</Text>
+      <Text style={styles.plannedEyebrow}>{t('plannedCard.eyebrow')}</Text>
       <Text style={styles.plannedTitle}>{title}</Text>
       <Text style={styles.plannedSub}>
         {dates} · {countLabel}
       </Text>
       <Pressable style={styles.plannedBtn} onPress={onOpen}>
-        <Text style={styles.plannedBtnText}>Открыть поездку</Text>
+        <Text style={styles.plannedBtnText}>{t('plannedCard.open')}</Text>
       </Pressable>
     </View>
   );
@@ -118,9 +120,11 @@ export function IdeaCard({
   countLabel,
   onPress,
   variant = 'compact',
-  metaRight = 'без дат',
+  metaRight,
 }: IdeaCardProps) {
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
+  const right = metaRight ?? t('ideaCard.noDates');
   if (variant === 'full') {
     return (
       <Pressable style={styles.ideaFull} onPress={onPress}>
@@ -129,7 +133,7 @@ export function IdeaCard({
             <View style={styles.ideaBadge}>
               <Text style={styles.ideaBadgeText}>{countLabel}</Text>
             </View>
-            <Text style={styles.ideaFullMeta}>{metaRight}</Text>
+            <Text style={styles.ideaFullMeta}>{right}</Text>
           </View>
         </CoverImage>
         <View style={styles.ideaFullBody}>
@@ -173,8 +177,9 @@ export function PlaceRow({
   onToggleLiked,
 }: PlaceRowProps) {
   const styles = useThemedStyles(createStyles);
-  const cat = PLACE_CATEGORIES[category];
-  const meta = city ? `${city} · ${cat.shortLabel}` : cat.shortLabel;
+  const { t } = useTranslation();
+  const short = t(`categoryShort.${category}`);
+  const meta = city ? `${city} · ${short}` : short;
   return (
     <Pressable style={styles.placeRow} onPress={onPress}>
       <CategoryIcon category={category} size={44} />

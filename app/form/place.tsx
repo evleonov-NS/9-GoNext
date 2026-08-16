@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
 import { Snackbar, Text } from 'react-native-paper';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -29,6 +30,7 @@ export default function FormPlaceScreen() {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { t } = useTranslation();
   const db = useSQLiteContext();
   const params = useLocalSearchParams<{ id?: string }>();
   const editId = params.id ? Number(params.id) : null;
@@ -56,7 +58,7 @@ export default function FormPlaceScreen() {
         const place = await getPlaceById(db, editId);
         if (cancelled) return;
         if (!place) {
-          Alert.alert('Место не найдено');
+          Alert.alert(t('alerts.placeNotFound'));
           router.back();
           return;
         }
@@ -70,7 +72,7 @@ export default function FormPlaceScreen() {
         setLiked(place.liked);
       } catch (e) {
         console.error(e);
-        Alert.alert('Не удалось загрузить место');
+        Alert.alert(t('alerts.loadPlaceFailed'));
         router.back();
       } finally {
         if (!cancelled) setLoading(false);
@@ -84,21 +86,21 @@ export default function FormPlaceScreen() {
   const buildInput = useCallback((): PlaceInput | null => {
     const trimmed = name.trim();
     if (!trimmed) {
-      Alert.alert('Нужно название', 'Укажите название места.');
+      Alert.alert(t('alerts.needName'), t('alerts.needPlaceName'));
       return null;
     }
     const latitude = parseCoord(lat);
     const longitude = parseCoord(lng);
     if ((lat.trim() || lng.trim()) && (latitude == null || longitude == null)) {
-      Alert.alert('Координаты', 'Широта и долгота должны быть числами, либо оба поля пустые.');
+      Alert.alert(t('alerts.coords'), t('alerts.coordsNumeric'));
       return null;
     }
     if (latitude != null && (latitude < -90 || latitude > 90)) {
-      Alert.alert('Координаты', 'Широта должна быть от −90 до 90.');
+      Alert.alert(t('alerts.coords'), t('alerts.coordsLat'));
       return null;
     }
     if (longitude != null && (longitude < -180 || longitude > 180)) {
-      Alert.alert('Координаты', 'Долгота должна быть от −180 до 180.');
+      Alert.alert(t('alerts.coords'), t('alerts.coordsLng'));
       return null;
     }
     return {
@@ -127,7 +129,7 @@ export default function FormPlaceScreen() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Ошибка', e instanceof Error ? e.message : 'Не удалось сохранить');
+      Alert.alert(t('alerts.error'), e instanceof Error ? e.message : t('alerts.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -140,7 +142,7 @@ export default function FormPlaceScreen() {
     setLng(parsed.longitude.toFixed(6));
     setShowPasteField(false);
     setPasteDraft('');
-    setToast('Координаты вставлены');
+    setToast(t('toast.coordsPasted'));
     return true;
   };
 
@@ -153,15 +155,15 @@ export default function FormPlaceScreen() {
     const latitude = parseCoord(lat);
     const longitude = parseCoord(lng);
     if (latitude == null || longitude == null) {
-      Alert.alert('Нет координат', 'Сначала укажите широту и долготу.');
+      Alert.alert(t('alerts.noCoords'), t('alerts.noCoordsFirst'));
       return;
     }
     try {
       await Clipboard.setStringAsync(formatCoords(latitude, longitude));
-      setToast('Координаты скопированы');
+      setToast(t('toast.coordsCopied'));
     } catch (e) {
       console.error(e);
-      Alert.alert('Не скопировалось', 'Скопируйте широту и долготу вручную из полей выше.');
+      Alert.alert(t('alerts.copyFailedTitle'), t('alerts.copyFailedBody'));
     }
   };
 
@@ -175,12 +177,12 @@ export default function FormPlaceScreen() {
       if (raw.trim()) {
         if (applyPastedCoords(raw)) return;
         Alert.alert(
-          'Не распознаны',
-          'Скопируйте широту и долготу в формате десятичных градусов, например 62.267500, 33.980800.'
+          t('alerts.coordsUnrecognizedTitle'),
+          t('alerts.coordsUnrecognizedBody')
         );
         return;
       }
-      Alert.alert('Буфер пуст', 'Сначала скопируйте координаты в навигаторе или на карте.');
+      Alert.alert(t('alerts.clipboardEmptyTitle'), t('alerts.clipboardEmptyBody'));
     } catch (e) {
       console.error(e);
       openPasteFallback();
@@ -199,40 +201,40 @@ export default function FormPlaceScreen() {
     <Screen>
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
-        <Text style={styles.title}>{isEdit ? 'Редактирование' : 'Новое место'}</Text>
+        <Text style={styles.title}>{isEdit ? t('form.edit') : t('form.newPlace')}</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>НАЗВАНИЕ</Text>
+        <Text style={styles.label}>{t('form.name')}</Text>
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="Например, Гранд-базар"
+          placeholder={t('form.placeNamePh')}
           placeholderTextColor={colors.textMuted}
           style={styles.input}
         />
 
-        <Text style={styles.label}>ГОРОД ИЛИ РЕГИОН</Text>
+        <Text style={styles.label}>{t('form.city')}</Text>
         <TextInput
           value={city}
           onChangeText={setCity}
-          placeholder="Карелия"
+          placeholder={t('form.cityPh')}
           placeholderTextColor={colors.textMuted}
           style={styles.input}
         />
 
-        <Text style={styles.label}>ОПИСАНИЕ — НЕОБЯЗАТЕЛЬНО</Text>
+        <Text style={styles.label}>{t('form.descriptionOptional')}</Text>
         <TextInput
           value={description}
           onChangeText={setDescription}
-          placeholder="Коротко, зачем сюда"
+          placeholder={t('form.placeDescPh')}
           placeholderTextColor={colors.textMuted}
           style={[styles.input, styles.textarea]}
           multiline
           textAlignVertical="top"
         />
 
-        <Text style={[styles.label, { marginBottom: 10 }]}>КАТЕГОРИЯ</Text>
+        <Text style={[styles.label, { marginBottom: 10 }]}>{t('form.category')}</Text>
         <View style={styles.cats}>
           {PLACE_CATEGORY_LIST.map((cat) => {
             const active = category === cat.id;
@@ -250,14 +252,14 @@ export default function FormPlaceScreen() {
               >
                 <CategoryIcon category={cat.id} size={40} />
                 <Text style={[styles.catLabel, { color: active ? cat.fg : colors.textSecondary }]}>
-                  {cat.shortLabel}
+                  {t(`categoryShort.${cat.id}`)}
                 </Text>
               </Pressable>
             );
           })}
         </View>
 
-        <Text style={styles.label}>КООРДИНАТЫ — НЕОБЯЗАТЕЛЬНО</Text>
+        <Text style={styles.label}>{t('form.coordsOptional')}</Text>
         <View style={styles.coordsRow}>
           <TextInput
             value={lat}
@@ -280,7 +282,7 @@ export default function FormPlaceScreen() {
         </View>
         <View style={styles.coordActions}>
           <Pressable style={styles.secondaryBtn} onPress={() => void onPasteCoords()}>
-            <Text style={styles.secondaryBtnText}>Вставить координаты из буфера</Text>
+            <Text style={styles.secondaryBtnText}>{t('form.pasteCoords')}</Text>
           </Pressable>
           {showPasteField ? (
             <TextInput
@@ -290,7 +292,7 @@ export default function FormPlaceScreen() {
                 setPasteDraft(t);
                 applyPastedCoords(t);
               }}
-              placeholder="Вставьте сюда: 62.267500, 33.980800"
+              placeholder={t('form.pasteCoordsPh')}
               placeholderTextColor={colors.textMuted}
               style={[styles.input, styles.pasteInput]}
               autoCapitalize="none"
@@ -298,7 +300,7 @@ export default function FormPlaceScreen() {
             />
           ) : null}
           <Pressable style={styles.secondaryBtn} onPress={() => void onCopyCoords()}>
-            <Text style={styles.secondaryBtnText}>Скопировать координаты для навигатора</Text>
+            <Text style={styles.secondaryBtnText}>{t('form.copyCoordsNav')}</Text>
           </Pressable>
         </View>
 
@@ -308,14 +310,14 @@ export default function FormPlaceScreen() {
             onPress={() => setVisitLater((v) => !v)}
           >
             <Text style={[styles.flagText, visitLater && styles.flagTextActive]}>
-              Хочу посетить
+              {t('form.visitLater')}
             </Text>
           </Pressable>
           <Pressable
             style={[styles.flag, liked && styles.flagActive]}
             onPress={() => setLiked((v) => !v)}
           >
-            <Text style={[styles.flagText, liked && styles.flagTextActive]}>Понравилось</Text>
+            <Text style={[styles.flagText, liked && styles.flagTextActive]}>{t('form.liked')}</Text>
           </Pressable>
         </View>
 
@@ -325,7 +327,7 @@ export default function FormPlaceScreen() {
           disabled={saving}
         >
           <Text style={styles.submitText}>
-            {saving ? 'Сохраняем…' : 'Сохранить место'}
+            {saving ? t('common.saving') : t('form.savePlace')}
           </Text>
         </Pressable>
       </View>

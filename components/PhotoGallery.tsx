@@ -10,18 +10,20 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { radii, type AppColors } from '@/constants/theme';
+import i18n from '@/i18n';
 import type { Photo } from '@/types';
 import { isDisplayablePhotoUri } from '@/services/photos';
 
 export type PhotoSource = 'library' | 'camera';
 
 export function promptPhotoSource(onPick: (source: PhotoSource) => void) {
-  Alert.alert('Добавить фото', 'Откуда взять изображение?', [
-    { text: 'Галерея', onPress: () => onPick('library') },
-    { text: 'Камера', onPress: () => onPick('camera') },
-    { text: 'Отмена', style: 'cancel' },
+  Alert.alert(i18n.t('photos.addTitle'), i18n.t('photos.addBody'), [
+    { text: i18n.t('photos.library'), onPress: () => onPick('library') },
+    { text: i18n.t('photos.camera'), onPress: () => onPick('camera') },
+    { text: i18n.t('common.cancel'), style: 'cancel' },
   ]);
 }
 
@@ -40,14 +42,16 @@ export function PhotoGallery({
   onAdd,
   onDelete,
   busy = false,
-  addLabel = '+ Добавить фото',
+  addLabel,
   showAddTile = true,
 }: Props) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [viewer, setViewer] = useState<Photo | null>(null);
   const visible = photos.filter((p) => isDisplayablePhotoUri(p.uri));
+  const addText = addLabel ?? t('photos.addLabel');
 
   const chooseSource = () => {
     if (busy) return;
@@ -55,13 +59,10 @@ export function PhotoGallery({
   };
 
   const confirmDelete = (photo: Photo) => {
-    Alert.alert(
-      'Удалить фото?',
-      'Файл будет удалён с устройства вместе с записью.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Удалить',
+    Alert.alert(t('photos.deleteTitle'), t('photos.deleteBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             setViewer(null);
@@ -99,7 +100,7 @@ export function PhotoGallery({
             disabled={busy}
             onPress={chooseSource}
           >
-            <Text style={styles.addTileText}>{addLabel}</Text>
+            <Text style={styles.addTileText}>{addText}</Text>
           </Pressable>
         ) : null}
       </ScrollView>
@@ -116,14 +117,14 @@ export function PhotoGallery({
           ) : null}
           <View style={styles.viewerBar}>
             <Pressable style={styles.viewerBtn} onPress={() => setViewer(null)}>
-              <Text style={styles.viewerBtnText}>Закрыть</Text>
+              <Text style={styles.viewerBtnText}>{t('common.close')}</Text>
             </Pressable>
             {viewer ? (
               <Pressable
                 style={[styles.viewerBtn, styles.viewerDanger]}
                 onPress={() => confirmDelete(viewer)}
               >
-                <Text style={styles.viewerDangerText}>Удалить</Text>
+                <Text style={styles.viewerDangerText}>{t('common.delete')}</Text>
               </Pressable>
             ) : null}
           </View>

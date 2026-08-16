@@ -8,13 +8,13 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { BackButton } from '@/components/chrome';
 import { IdeaPlaceSheet } from '@/components/IdeaPlaceSheet';
 import { CoverImage } from '@/components/CoverImage';
 import { Screen } from '@/components/Screen';
 import { artwork } from '@/constants/artwork';
-import { PLACE_CATEGORIES } from '@/constants/categories';
 import {
   ideaStatusLabel,
   PLACE_PRIORITIES,
@@ -23,19 +23,13 @@ import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { radii, type AppColors } from '@/constants/theme';
 import { useTripIdea, type IdeaPlaceRow } from '@/hooks/useTripIdea';
 import type { PlacePriority } from '@/types';
-
-function pluralPlaces(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n} место`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${n} места`;
-  return `${n} мест`;
-}
+import { pluralPlaces } from '@/utils/plural';
 
 export default function IdeaCardScreen() {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const { t } = useTranslation();
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
   const id = idParam ? Number(idParam) : null;
   const {
@@ -68,7 +62,7 @@ export default function IdeaCardScreen() {
       <Screen>
         <View style={styles.header}>
           <BackButton onPress={() => router.back()} />
-          <Text style={styles.error}>{error ?? 'Идея не найдена'}</Text>
+          <Text style={styles.error}>{error ?? t('alerts.ideaNotFound')}</Text>
         </View>
       </Screen>
     );
@@ -79,7 +73,9 @@ export default function IdeaCardScreen() {
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>идея · {ideaStatusLabel(idea.status)}</Text>
+          <Text style={styles.badgeText}>
+            {t('idea.badge', { status: ideaStatusLabel(idea.status) })}
+          </Text>
         </View>
       </View>
 
@@ -89,20 +85,20 @@ export default function IdeaCardScreen() {
       {idea.description ? <Text style={styles.desc}>{idea.description}</Text> : null}
 
       <View style={styles.sectionRow}>
-        <Text style={styles.sectionTitle}>Что хочу посетить</Text>
+        <Text style={styles.sectionTitle}>{t('idea.wantVisit')}</Text>
         <Text style={styles.sectionMeta}>{pluralPlaces(places.length)}</Text>
       </View>
 
       <View style={styles.listCard}>
         {places.length === 0 ? (
-          <Text style={styles.emptyList}>Пока нет мест — добавьте из базы.</Text>
+          <Text style={styles.emptyList}>{t('idea.emptyList')}</Text>
         ) : (
           places.map((row, index) => {
-            const cat = PLACE_CATEGORIES[row.place.category];
+            const catShort = t(`categoryShort.${row.place.category}`);
             const prio = PLACE_PRIORITIES[row.priority];
             const sub = row.place.city
-              ? `${row.place.city} · ${cat.shortLabel.toLowerCase()}`
-              : cat.shortLabel;
+              ? `${row.place.city} · ${catShort.toLowerCase()}`
+              : catShort;
             return (
               <Pressable
                 key={row.id}
@@ -118,7 +114,9 @@ export default function IdeaCardScreen() {
                   </Text>
                 </View>
                 <View style={[styles.prio, { backgroundColor: prio.bg }]}>
-                  <Text style={[styles.prioText, { color: prio.fg }]}>{prio.label}</Text>
+                  <Text style={[styles.prioText, { color: prio.fg }]}>
+                    {t(`priority.${row.priority}`)}
+                  </Text>
                 </View>
               </Pressable>
             );
@@ -135,7 +133,7 @@ export default function IdeaCardScreen() {
           })
         }
       >
-        <Text style={styles.addBtnText}>+ Добавить место</Text>
+        <Text style={styles.addBtnText}>{t('idea.addPlace')}</Text>
       </Pressable>
 
       <Pressable
@@ -153,8 +151,8 @@ export default function IdeaCardScreen() {
           }
         >
           {idea.status === 'converted'
-            ? 'Создать ещё одну поездку'
-            : 'Создать поездку'}
+            ? t('idea.createAnotherTrip')
+            : t('idea.createTrip')}
         </Text>
       </Pressable>
 
@@ -165,7 +163,7 @@ export default function IdeaCardScreen() {
             router.push({ pathname: '/form/idea', params: { id: String(idea.id) } })
           }
         >
-          <Text style={styles.editBtnText}>Изменить идею</Text>
+          <Text style={styles.editBtnText}>{t('idea.edit')}</Text>
         </Pressable>
       </View>
 
@@ -196,12 +194,12 @@ export default function IdeaCardScreen() {
           const name = sheetItem.place.name;
           const linkId = sheetItem.id;
           Alert.alert(
-            'Убрать из идеи?',
-            `«${name}» останется в общей базе «Места» — удалится только из этой идеи.`,
+            t('alerts.removeFromIdeaTitle'),
+            t('alerts.removeFromIdeaBody', { name }),
             [
-              { text: 'Отмена', style: 'cancel' },
+              { text: t('common.cancel'), style: 'cancel' },
               {
-                text: 'Убрать',
+                text: t('alerts.remove'),
                 style: 'destructive',
                 onPress: () => {
                   setSheetItem(null);
