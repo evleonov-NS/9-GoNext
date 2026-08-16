@@ -18,6 +18,8 @@ import {
   updateTripIdea,
   updateTripIdeaPlace,
 } from '@/repositories/tripIdeasRepository';
+import i18n from '@/i18n';
+import { errorMessage } from '@/utils/errors';
 
 export type IdeaPlaceRow = TripIdeaPlace & { place: Place };
 
@@ -47,7 +49,7 @@ export function useTripIdea(id: number | null): {
       setIdea(null);
       setPlaces([]);
       setLoading(false);
-      setError('Некорректный id идеи');
+      setError(i18n.t('alerts.ideaNotFound'));
       return;
     }
     setLoading(true);
@@ -57,7 +59,7 @@ export function useTripIdea(id: number | null): {
       setIdea(row);
       if (!row) {
         setPlaces([]);
-        setError('Идея не найдена');
+        setError(i18n.t('alerts.ideaNotFound'));
         return;
       }
       const links = await getTripIdeaPlaces(db, id);
@@ -68,7 +70,7 @@ export function useTripIdea(id: number | null): {
       }
       setPlaces(enriched);
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Ошибка чтения идеи';
+      const message = errorMessage(e);
       setError(message);
       console.error('[GoNext] trip idea load failed', e);
     } finally {

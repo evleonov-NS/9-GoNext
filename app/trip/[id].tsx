@@ -11,7 +11,7 @@ import { Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { CategoryIcon } from '@/components/CategoryIcon';
-import { BackButton } from '@/components/chrome';
+import { BackButton, ErrorState } from '@/components/chrome';
 import { CoverImage } from '@/components/CoverImage';
 import { Screen } from '@/components/Screen';
 import { TripPlaceSheet } from '@/components/TripPlaceSheet';
@@ -112,6 +112,7 @@ export default function TripCardScreen() {
     tryStart,
     complete,
     tryReactivate,
+    refresh,
     pendingCount,
     visitedCount,
   } = useTrip(id);
@@ -221,8 +222,11 @@ export default function TripCardScreen() {
       <Screen>
         <View style={styles.header}>
           <BackButton onPress={() => router.back()} />
-          <Text style={styles.error}>{error ?? t('alerts.tripNotFound')}</Text>
         </View>
+        <ErrorState
+          message={error ?? t('alerts.tripNotFound')}
+          onRetry={() => void refresh()}
+        />
       </Screen>
     );
   }
@@ -298,7 +302,7 @@ export default function TripCardScreen() {
 
         {trip.status === 'completed' ? (
           <>
-            <Pressable style={styles.secondary} onPress={() => router.push('/diary')}>
+            <Pressable style={styles.secondary} onPress={() => router.push({ pathname: '/diary', params: { id: String(trip.id) } })}>
               <Text style={styles.secondaryText}>{t('trip.diary')}</Text>
             </Pressable>
             <Pressable
@@ -494,7 +498,7 @@ function createStyles(colors: AppColors) {
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: radii.pill,
-    backgroundColor: '#e5f0ea',
+    backgroundColor: colors.accentMuted,
   },
   badgeText: {
     fontSize: 11,
@@ -619,7 +623,7 @@ function createStyles(colors: AppColors) {
   },
   placeRowSep: {
     borderTopWidth: 1,
-    borderTopColor: '#f0f1ec',
+    borderTopColor: colors.border,
   },
   placeText: {
     flex: 1,
@@ -654,7 +658,7 @@ function createStyles(colors: AppColors) {
     marginTop: 4,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#d3d5cc',
+    borderColor: colors.dashed,
     borderRadius: 18,
     paddingVertical: 14,
     alignItems: 'center',
@@ -662,7 +666,7 @@ function createStyles(colors: AppColors) {
   addBtnText: {
     fontWeight: '700',
     fontSize: 13,
-    color: '#5c5f57',
+    color: colors.textSecondary,
   },
   editBtn: {
     marginTop: 12,
@@ -677,10 +681,6 @@ function createStyles(colors: AppColors) {
   editBtnText: {
     fontWeight: '800',
     color: colors.text,
-  },
-  error: {
-    color: colors.dangerText,
-    fontWeight: '600',
   },
   });
 }

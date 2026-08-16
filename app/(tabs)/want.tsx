@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native-paper';
 import { IdeaCard, PlaceRow } from '@/components/cards';
-import { EmptyState } from '@/components/chrome';
+import { EmptyState, ErrorState } from '@/components/chrome';
 import { Screen } from '@/components/Screen';
 import { FilterChip, PageTitle } from '@/components/ui';
 import {
@@ -79,7 +79,7 @@ export default function WantScreen() {
       {loading ? (
         <ActivityIndicator color={colors.accent} style={styles.loader} />
       ) : error ? (
-        <Text style={styles.error}>{error}</Text>
+        <ErrorState message={error} onRetry={() => void refresh()} />
       ) : tab === 'ideas' ? (
         <View style={styles.block}>
           <View style={styles.chips}>
@@ -209,11 +209,6 @@ function createStyles(colors: AppColors) {
   },
   loader: {
     marginTop: 24,
-  },
-  error: {
-    marginTop: 16,
-    color: colors.dangerText,
-    fontWeight: '600',
   },
   });
 }

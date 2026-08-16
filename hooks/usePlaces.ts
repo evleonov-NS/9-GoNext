@@ -9,6 +9,7 @@ import {
   getVisitedPlaceIds,
   updatePlace,
 } from '@/repositories/placesRepository';
+import { errorMessage } from '@/utils/errors';
 
 export function usePlaces(): {
   places: Place[];
@@ -34,7 +35,7 @@ export function usePlaces(): {
       setPlaces(rows);
       setVisitedIds(visited);
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Ошибка чтения places';
+      const message = errorMessage(e);
       setError(message);
       console.error('[GoNext] places load failed', e);
     } finally {

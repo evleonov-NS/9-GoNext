@@ -58,6 +58,38 @@ export function BackButton({ onPress }: BackButtonProps) {
   );
 }
 
+type ErrorStateProps = {
+  title?: string;
+  message: string;
+  onRetry?: () => void;
+};
+
+export function ErrorState({ title, message, onRetry }: ErrorStateProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
+  return (
+    <View style={styles.empty}>
+      <View style={[styles.emptyIcon, styles.errorIcon]}>
+        <IconPath
+          d="M12 9v4M12 17h.01M10.3 4.7 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.7a2 2 0 0 0-3.4 0Z"
+          size={26}
+          color={colors.dangerText}
+        />
+      </View>
+      <View style={[styles.emptyBody, styles.emptyBodyPlain]}>
+        <Text style={styles.emptyTitle}>{title ?? t('alerts.loadErrorTitle')}</Text>
+        <Text style={styles.emptySub}>{message || t('alerts.loadErrorSub')}</Text>
+        {onRetry ? (
+          <Pressable style={styles.emptyBtn} onPress={onRetry}>
+            <Text style={styles.emptyBtnText}>{t('common.retry')}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
 type EmptyStateProps = {
   title: string;
   subtitle: string;
@@ -189,6 +221,9 @@ function createStyles(colors: AppColors) {
       fontSize: 13.5,
       fontWeight: '800',
       color: colors.textOnAccent,
+    },
+    errorIcon: {
+      backgroundColor: colors.dangerBg,
     },
   });
 }

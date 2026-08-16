@@ -111,6 +111,14 @@ export async function getTripPlaces(db: SQLiteDatabase, tripId: number): Promise
   return rows.map(mapTripPlace);
 }
 
+export async function getAllTripPlaces(db: SQLiteDatabase): Promise<TripPlace[]> {
+  await enableForeignKeys(db);
+  const rows = await db.getAllAsync<TripPlaceRow>(
+    'SELECT * FROM trip_places ORDER BY trip_id ASC, sort_order ASC'
+  );
+  return rows.map(mapTripPlace);
+}
+
 export async function addTripPlace(
   db: SQLiteDatabase,
   tripId: number,

@@ -9,6 +9,7 @@ import {
   getTripPlaceCounts,
   updateTrip,
 } from '@/repositories/tripsRepository';
+import { errorMessage } from '@/utils/errors';
 
 export function useTrips(): {
   trips: Trip[];
@@ -37,7 +38,7 @@ export function useTrips(): {
       setTrips(rows);
       setPlaceCounts(counts);
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Ошибка чтения поездок';
+      const message = errorMessage(e);
       setError(message);
       console.error('[GoNext] trips load failed', e);
     } finally {

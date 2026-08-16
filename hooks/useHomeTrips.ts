@@ -21,6 +21,7 @@ import {
 } from '@/utils/startBannerSession';
 import { findNextPending, sortByRouteOrder } from '@/utils/nextPlace';
 import { todayDateOnly } from '@/utils/tripDates';
+import { errorMessage } from '@/utils/errors';
 
 const HOME_IDEAS_LIMIT = 6;
 const HOME_PLACES_LIMIT = 4;
@@ -38,6 +39,7 @@ export type HomeTripsState = {
   ideaPlaceCounts: Map<number, number>;
   wantPlaces: Place[];
   loading: boolean;
+  error: string | null;
   dismissBanner: () => void;
   startBannerTrip: (opts?: {
     completePrevious?: boolean;
@@ -73,10 +75,12 @@ export function useHomeTrips(): HomeTripsState {
   );
   const [wantPlaces, setWantPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dismissTick, setDismissTick] = useState(0);
 
   const refresh = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const today = todayDateOnly();
       const [
@@ -129,6 +133,8 @@ export function useHomeTrips(): HomeTripsState {
         sortWantPlaces(places.filter((p) => p.visitLater)).slice(0, HOME_PLACES_LIMIT)
       );
     } catch (e) {
+      const message = errorMessage(e);
+      setError(message);
       console.error('[GoNext] home trips load failed', e);
     } finally {
       setLoading(false);
@@ -185,6 +191,7 @@ export function useHomeTrips(): HomeTripsState {
     ideaPlaceCounts,
     wantPlaces,
     loading,
+    error,
     dismissBanner,
     startBannerTrip,
     refresh,

@@ -323,7 +323,7 @@ function createStyles(colors: AppColors) {
     marginTop: 12,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#d3d5cc',
+    borderColor: colors.dashed,
     borderRadius: 18,
     paddingVertical: 14,
     alignItems: 'center',
@@ -331,7 +331,7 @@ function createStyles(colors: AppColors) {
   createLinkText: {
     fontWeight: '700',
     fontSize: 13,
-    color: '#5c5f57',
+    color: colors.textSecondary,
   },
   submit: {
     marginTop: 12,

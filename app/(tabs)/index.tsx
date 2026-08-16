@@ -16,7 +16,7 @@ import {
   PlaceRow,
   PlannedTripCard,
 } from '@/components/cards';
-import { EmptyState, SettingsButton } from '@/components/chrome';
+import { EmptyState, ErrorState, SettingsButton } from '@/components/chrome';
 import { GlassView } from '@/components/GlassView';
 import { Screen } from '@/components/Screen';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
@@ -110,8 +110,10 @@ export default function HomeScreen() {
     ideaPlaceCounts,
     wantPlaces,
     loading,
+    error,
     dismissBanner,
     startBannerTrip,
+    refresh,
   } = useHomeTrips();
 
   const [onHeroHeight, setOnHeroHeight] = useState(0);
@@ -193,6 +195,10 @@ export default function HomeScreen() {
 
       <View style={{ height: heroSpacer }} />
 
+      {error && !active && !nextPlanned && ideas.length === 0 && wantPlaces.length === 0 ? (
+        <ErrorState message={error} onRetry={() => void refresh()} />
+      ) : (
+        <>
       {active ? (
         <View style={styles.gap12}>
           <ActiveTripCard
@@ -322,6 +328,8 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
+        </>
+      )}
     </Screen>
   );
 }

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -21,6 +21,7 @@ import { SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
 import { countPlaces } from '@/repositories/placesRepository';
 import { countTrips } from '@/repositories/tripsRepository';
 import { getAllTripIdeas } from '@/repositories/tripIdeasRepository';
+import { exportBackupAndShare } from '@/services/backup';
 import { pluralIdeas, pluralPlaces, pluralTrips } from '@/utils/plural';
 
 const THEME_OPTIONS: { id: ThemeScheme; key: 'light' | 'dark' }[] = [
@@ -41,6 +42,7 @@ export default function SettingsScreen() {
   const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const [stats, setStats] = useState(t('common.loading'));
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +70,22 @@ export default function SettingsScreen() {
       cancelled = true;
     };
   }, [db, t, language]);
+
+  const runExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await exportBackupAndShare(db);
+    } catch (e) {
+      console.error('[GoNext] backup export failed', e);
+      Alert.alert(
+        t('settings.exportFailed'),
+        e instanceof Error ? e.message : t('alerts.error')
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <Screen>
@@ -165,8 +183,23 @@ export default function SettingsScreen() {
         <Text style={styles.rowValue}>{stats}</Text>
       </View>
       <View style={styles.card}>
+        <Text style={styles.rowLabel}>{t('settings.offline')}</Text>
+        <Text style={styles.rowValue}>{t('settings.offlineHint')}</Text>
+      </View>
+      <View style={styles.card}>
         <Text style={styles.rowLabel}>{t('settings.export')}</Text>
-        <Text style={styles.rowValue}>{t('settings.exportStub')}</Text>
+        <Text style={styles.rowValue}>{t('settings.exportHint')}</Text>
+        <Pressable
+          style={[styles.exportBtn, exporting && styles.exportBtnDisabled]}
+          onPress={() => void runExport()}
+          disabled={exporting}
+          accessibilityRole="button"
+          accessibilityLabel={t('settings.exportAction')}
+        >
+          <Text style={styles.exportBtnText}>
+            {exporting ? t('settings.exportBusy') : t('settings.exportAction')}
+          </Text>
+        </Pressable>
       </View>
     </Screen>
   );
@@ -208,7 +241,8 @@ function createStyles(colors: AppColors) {
     },
     rowValue: {
       marginTop: 6,
-      fontSize: 16,
+      fontSize: 15,
+      lineHeight: 22,
       fontWeight: '600',
       color: colors.text,
     },
@@ -269,6 +303,21 @@ function createStyles(colors: AppColors) {
       borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    exportBtn: {
+      marginTop: 14,
+      backgroundColor: colors.accent,
+      borderRadius: radii.md,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    exportBtnDisabled: {
+      opacity: 0.55,
+    },
+    exportBtnText: {
+      fontSize: 13.5,
+      fontWeight: '800',
+      color: colors.textOnAccent,
     },
   });
 }

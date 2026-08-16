@@ -10,6 +10,7 @@
     "saving": "Saving…",
     "loading": "loading…",
     "error": "Error",
+    "retry": "Retry",
     "readError": "read error",
     "optional": "Optional",
     "settings": "Settings",
@@ -117,8 +118,14 @@
     "version": "Version",
     "data": "Data (SQLite)",
     "stats": "{{places}} · {{ideas}} · {{trips}}",
-    "export": "Export",
-    "exportStub": "Placeholder · stage 10"
+    "export": "Backup",
+    "exportHint": "All tables and photos will be packed into a zip. Import comes in later versions.",
+    "exportAction": "Share backup",
+    "exportBusy": "Building archive…",
+    "exportUnavailable": "System sharing is not available on this device.",
+    "exportFailed": "Could not create a backup",
+    "offline": "Storage",
+    "offlineHint": "Data and photos stay on this device. Works offline. Restarting the app does not wipe the database."
   },
   "addSheet": {
     "title": "What to add?",
@@ -259,6 +266,8 @@
     "saveFailed": "Could not save",
     "deleteFailed": "Could not delete",
     "loadFailed": "Could not load",
+    "loadErrorTitle": "Could not load",
+    "loadErrorSub": "Make sure the app is open and try again.",
     "placeNotFound": "Place not found",
     "ideaNotFound": "Idea not found",
     "tripNotFound": "Trip not found",
@@ -290,6 +299,9 @@
     "photo": "Photo",
     "addPhotoFailed": "Could not add the photo",
     "deletePhotoFailed": "Could not delete the photo",
+    "galleryDenied": "No access to the photo library",
+    "cameraDenied": "No access to the camera",
+    "photoSaveFailed": "Could not save the photo file",
     "visitFailed": "Could not mark as visited",
     "skipFailed": "Could not skip the place",
     "completeFailed": "Could not complete the trip"
@@ -447,9 +459,11 @@
   },
   "diary": {
     "chip": "trip diary",
-    "title": "Karelia 2025",
-    "sub": "July 2025 · 7 places · screen placeholder",
-    "day1": "Day 1",
-    "body": "Notes and photos live on the trip card: visited places, the mini-form after Visited, and the place card."
+    "visitedOf": "Visited {{visited}} of {{total}}",
+    "emptyTitle": "No trip",
+    "emptySub": "Open the diary from a completed trip — notes and photos live here.",
+    "emptyAction": "To trips",
+    "noNotes": "No note",
+    "skipped": "skipped"
   }
 }

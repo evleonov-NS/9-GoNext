@@ -7,9 +7,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Text } from 'react-native-paper';
 import { TripRow } from '@/components/cards';
-import { EmptyState } from '@/components/chrome';
+import { EmptyState, ErrorState } from '@/components/chrome';
 import { Screen } from '@/components/Screen';
 import { FilterChip, PageTitle } from '@/components/ui';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
@@ -32,7 +31,7 @@ export default function TripsScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { t } = useTranslation();
-  const { trips, placeCounts, loading, error } = useTrips();
+  const { trips, placeCounts, loading, error, refresh } = useTrips();
   const [tab, setTab] = useState<(typeof TRIP_TABS)[number]>('all');
   const [search, setSearch] = useState('');
 
@@ -78,7 +77,7 @@ export default function TripsScreen() {
       {loading ? (
         <ActivityIndicator color={colors.accent} style={styles.loader} />
       ) : error ? (
-        <Text style={styles.error}>{error}</Text>
+        <ErrorState message={error} onRetry={() => void refresh()} />
       ) : filtered.length === 0 ? (
         <EmptyState
           illustrated={trips.length === 0}
@@ -142,11 +141,6 @@ function createStyles(colors: AppColors) {
   },
   loader: {
     marginTop: 24,
-  },
-  error: {
-    marginTop: 16,
-    color: colors.dangerText,
-    fontWeight: '600',
   },
   });
 }

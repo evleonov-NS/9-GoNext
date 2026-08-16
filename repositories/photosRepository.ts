@@ -18,6 +18,12 @@ export async function getPhotoById(db: SQLiteDatabase, id: number): Promise<Phot
   return row ? mapPhoto(row) : null;
 }
 
+export async function getAllPhotos(db: SQLiteDatabase): Promise<Photo[]> {
+  await enableForeignKeys(db);
+  const rows = await db.getAllAsync<PhotoRow>('SELECT * FROM photos ORDER BY created_at ASC');
+  return rows.map(mapPhoto);
+}
+
 export async function getPhotosByTripPlaceId(
   db: SQLiteDatabase,
   tripPlaceId: number

@@ -20,6 +20,8 @@ import {
   findNextPending,
   sortByRouteOrder,
 } from '@/utils/nextPlace';
+import i18n from '@/i18n';
+import { errorMessage } from '@/utils/errors';
 
 export type NextPlaceState = {
   trip: Trip | null;
@@ -64,7 +66,7 @@ export function useNextPlace(): NextPlaceState {
       }
       setRows(enriched);
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Ошибка экрана следующего места';
+      const message = errorMessage(e);
       setError(message);
       console.error('[GoNext] next place load failed', e);
     } finally {
@@ -113,7 +115,7 @@ export function useNextPlace(): NextPlaceState {
   );
 
   const complete = useCallback(async () => {
-    if (!trip) throw new Error('Нет активной поездки');
+    if (!trip) throw new Error(i18n.t('alerts.tripNotFound'));
     const nextTrip = await completeTrip(db, trip.id);
     await refresh({ silent: true });
     return nextTrip;

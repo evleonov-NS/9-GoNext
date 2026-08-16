@@ -10,6 +10,7 @@ import {
   getTripIdeaPlaceCounts,
   updateTripIdea,
 } from '@/repositories/tripIdeasRepository';
+import { errorMessage } from '@/utils/errors';
 
 export function useTripIdeas(): {
   ideas: TripIdea[];
@@ -42,7 +43,7 @@ export function useTripIdeas(): {
       setPlaceCounts(counts);
       setVisitLaterPlaces(places.filter((p) => p.visitLater));
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Ошибка чтения идей';
+      const message = errorMessage(e);
       setError(message);
       console.error('[GoNext] trip ideas load failed', e);
     } finally {

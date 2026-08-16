@@ -29,12 +29,13 @@ export function promptPhotoSource(onPick: (source: PhotoSource) => void) {
 
 type Props = {
   photos: Photo[];
-  onAdd: (source: PhotoSource) => void;
-  onDelete: (photo: Photo) => void;
+  onAdd?: (source: PhotoSource) => void;
+  onDelete?: (photo: Photo) => void;
   busy?: boolean;
   addLabel?: string;
   /** false — только превью, кнопку добавления рисует родитель (как в прототипе). */
   showAddTile?: boolean;
+  readOnly?: boolean;
 };
 
 export function PhotoGallery({
@@ -44,6 +45,7 @@ export function PhotoGallery({
   busy = false,
   addLabel,
   showAddTile = true,
+  readOnly = false,
 }: Props) {
   const { colors } = useAppTheme();
   const styles = useThemedStyles(createStyles);
@@ -51,14 +53,17 @@ export function PhotoGallery({
   const { t } = useTranslation();
   const [viewer, setViewer] = useState<Photo | null>(null);
   const visible = photos.filter((p) => isDisplayablePhotoUri(p.uri));
+  const canAdd = !readOnly && showAddTile && onAdd != null;
+  const canDelete = !readOnly && onDelete != null;
   const addText = addLabel ?? t('photos.addLabel');
 
   const chooseSource = () => {
-    if (busy) return;
+    if (busy || !onAdd) return;
     promptPhotoSource(onAdd);
   };
 
   const confirmDelete = (photo: Photo) => {
+    if (!onDelete) return;
     Alert.alert(t('photos.deleteTitle'), t('photos.deleteBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
@@ -73,7 +78,7 @@ export function PhotoGallery({
     );
   };
 
-  if (visible.length === 0 && !showAddTile) {
+  if (visible.length === 0 && !canAdd) {
     return null;
   }
 
@@ -89,12 +94,12 @@ export function PhotoGallery({
             key={photo.id}
             style={styles.thumb}
             onPress={() => setViewer(photo)}
-            onLongPress={() => confirmDelete(photo)}
+            onLongPress={canDelete ? () => confirmDelete(photo) : undefined}
           >
             <Image source={{ uri: photo.uri }} style={styles.thumbImg} />
           </Pressable>
         ))}
-        {showAddTile ? (
+        {canAdd ? (
           <Pressable
             style={[styles.addTile, busy && styles.disabled]}
             disabled={busy}
@@ -119,7 +124,7 @@ export function PhotoGallery({
             <Pressable style={styles.viewerBtn} onPress={() => setViewer(null)}>
               <Text style={styles.viewerBtnText}>{t('common.close')}</Text>
             </Pressable>
-            {viewer ? (
+            {canDelete && viewer ? (
               <Pressable
                 style={[styles.viewerBtn, styles.viewerDanger]}
                 onPress={() => confirmDelete(viewer)}

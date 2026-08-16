@@ -26,6 +26,8 @@ import {
   updateTripPlace,
 } from '@/repositories/tripsRepository';
 import { tripDurationDays } from '@/utils/tripDates';
+import i18n from '@/i18n';
+import { errorMessage } from '@/utils/errors';
 
 export type TripPlaceRow = TripPlace & { place: Place };
 
@@ -72,7 +74,7 @@ export function useTrip(id: number | null): {
       setTrip(null);
       setPlaces([]);
       setLoading(false);
-      setError('Некорректный id поездки');
+      setError(i18n.t('alerts.tripNotFound'));
       return;
     }
     setLoading(true);
@@ -82,7 +84,7 @@ export function useTrip(id: number | null): {
       setTrip(row);
       if (!row) {
         setPlaces([]);
-        setError('Поездка не найдена');
+        setError(i18n.t('alerts.tripNotFound'));
         return;
       }
       const links = await getTripPlaces(db, id);
@@ -95,7 +97,7 @@ export function useTrip(id: number | null): {
       enriched.sort((a, b) => a.sortOrder - b.sortOrder);
       setPlaces(enriched);
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Ошибка чтения поездки';
+      const message = errorMessage(e);
       setError(message);
       console.error('[GoNext] trip load failed', e);
     } finally {

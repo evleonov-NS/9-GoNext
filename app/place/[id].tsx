@@ -13,7 +13,7 @@ import { Snackbar, Text } from 'react-native-paper';
 import { IconPath } from '@/components/IconPath';
 import { LinearGradientPlaceholder } from '@/components/LinearGradientPlaceholder';
 import { PhotoGallery, type PhotoSource } from '@/components/PhotoGallery';
-import { BackButton } from '@/components/chrome';
+import { BackButton, ErrorState } from '@/components/chrome';
 import { Screen } from '@/components/Screen';
 import { PLACE_CATEGORIES } from '@/constants/categories';
 import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
@@ -31,7 +31,7 @@ export default function PlaceCardScreen() {
   const { t } = useTranslation();
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
   const id = idParam ? Number(idParam) : null;
-  const { place, trips, loading, error, update, remove } = usePlace(id);
+  const { place, trips, loading, error, update, remove, refresh } = usePlace(id);
   const placePhotos = usePhotos({ placeId: id });
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -128,8 +128,11 @@ export default function PlaceCardScreen() {
       <Screen>
         <View style={styles.header}>
           <BackButton onPress={() => router.back()} />
-          <Text style={styles.error}>{error ?? t('alerts.placeNotFound')}</Text>
         </View>
+        <ErrorState
+          message={error ?? t('alerts.placeNotFound')}
+          onRetry={() => void refresh()}
+        />
       </Screen>
     );
   }
@@ -368,7 +371,7 @@ function createStyles(colors: AppColors) {
   },
   noCoords: {
     marginTop: 16,
-    backgroundColor: '#f4f5f1',
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: colors.dashed,
@@ -478,7 +481,7 @@ function createStyles(colors: AppColors) {
     backgroundColor: colors.accentMuted,
   },
   tripBadgeDone: {
-    backgroundColor: '#eef0ec',
+    backgroundColor: colors.surfaceMuted,
   },
   tripBadgeText: {
     fontSize: 10.5,
@@ -516,10 +519,6 @@ function createStyles(colors: AppColors) {
   deleteBtnText: {
     fontWeight: '800',
     color: colors.dangerText,
-  },
-  error: {
-    color: colors.dangerText,
-    fontWeight: '600',
   },
   snack: {
     backgroundColor: colors.accentDark,

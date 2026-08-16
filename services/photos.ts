@@ -3,6 +3,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 import { copyAsync } from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import type { SQLiteDatabase } from 'expo-sqlite';
+import i18n from '@/i18n';
 import type { Photo } from '@/types';
 import {
   createPhoto,
@@ -81,7 +82,7 @@ async function persistPickedImage(asset: ImagePicker.ImagePickerAsset): Promise<
   }
 
   if (!dest.exists) {
-    throw new Error('Не удалось сохранить файл фото');
+    throw new Error(i18n.t('alerts.photoSaveFailed'));
   }
   return dest.uri;
 }
@@ -100,7 +101,7 @@ function deleteLocalPhotoFile(uri: string): void {
 export async function pickImagesFromLibrary(): Promise<ImagePicker.ImagePickerAsset[]> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
-    throw new Error('Нет доступа к галерее');
+    throw new Error(i18n.t('alerts.galleryDenied'));
   }
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
@@ -114,7 +115,7 @@ export async function pickImagesFromLibrary(): Promise<ImagePicker.ImagePickerAs
 export async function takePhotoWithCamera(): Promise<ImagePicker.ImagePickerAsset | null> {
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) {
-    throw new Error('Нет доступа к камере');
+    throw new Error(i18n.t('alerts.cameraDenied'));
   }
   const result = await ImagePicker.launchCameraAsync({
     mediaTypes: ['images'],

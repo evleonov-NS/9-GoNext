@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native-paper';
 import { PlaceRow } from '@/components/cards';
 import { CategoryIcon } from '@/components/CategoryIcon';
-import { EmptyState } from '@/components/chrome';
+import { EmptyState, ErrorState } from '@/components/chrome';
 import { Screen } from '@/components/Screen';
 import { FilterChip, PageTitle } from '@/components/ui';
 import { PLACE_CATEGORY_LIST, type PlaceCategoryId } from '@/constants/categories';
@@ -28,7 +28,7 @@ export default function PlacesScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { t } = useTranslation();
-  const { places, visitedIds, loading, error, update } = usePlaces();
+  const { places, visitedIds, loading, error, update, refresh } = usePlaces();
   const [tab, setTab] = useState<(typeof PLACE_TABS)[number]>('all');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<PlaceCategoryId | null>(null);
@@ -101,7 +101,7 @@ export default function PlacesScreen() {
       {loading ? (
         <ActivityIndicator color={colors.accent} style={styles.loader} />
       ) : error ? (
-        <Text style={styles.error}>{error}</Text>
+        <ErrorState message={error} onRetry={() => void refresh()} />
       ) : filtered.length === 0 ? (
         <EmptyState
           illustrated={places.length === 0}
@@ -202,11 +202,6 @@ function createStyles(colors: AppColors) {
   },
   loader: {
     marginTop: 24,
-  },
-  error: {
-    marginTop: 16,
-    color: colors.dangerText,
-    fontWeight: '600',
   },
   });
 }

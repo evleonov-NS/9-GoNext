@@ -11,7 +11,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Clipboard from 'expo-clipboard';
 import { Snackbar, Text } from 'react-native-paper';
-import { BackButton, EmptyState } from '@/components/chrome';
+import { BackButton, EmptyState, ErrorState } from '@/components/chrome';
 import { IconPath } from '@/components/IconPath';
 import { LinearGradientPlaceholder } from '@/components/LinearGradientPlaceholder';
 import { PhotoGallery, promptPhotoSource, type PhotoSource } from '@/components/PhotoGallery';
@@ -58,6 +58,7 @@ export default function NextScreen() {
     skip,
     saveVisit,
     complete,
+    refresh,
   } = useNextPlace();
 
   const [mode, setMode] = useState<Mode>('card');
@@ -292,8 +293,8 @@ export default function NextScreen() {
       <Screen>
         <View style={styles.header}>
           <BackButton onPress={() => router.back()} />
-          <Text style={styles.error}>{error}</Text>
         </View>
+        <ErrorState message={error} onRetry={() => void refresh()} />
       </Screen>
     );
   }
@@ -423,8 +424,11 @@ export default function NextScreen() {
       <Screen>
         <View style={styles.header}>
           <BackButton onPress={() => router.back()} />
-          <Text style={styles.error}>{t('alerts.placeNotFound')}</Text>
         </View>
+        <ErrorState
+          message={t('alerts.placeNotFound')}
+          onRetry={() => void refresh()}
+        />
       </Screen>
     );
   }
@@ -604,7 +608,7 @@ function createStyles(colors: AppColors) {
   },
   noCoords: {
     marginTop: 16,
-    backgroundColor: '#f4f5f1',
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: colors.dashed,
@@ -729,8 +733,8 @@ function createStyles(colors: AppColors) {
     alignItems: 'center',
   },
   likeBtnActive: {
-    backgroundColor: '#fdeef2',
-    borderColor: '#f0d4dc',
+    backgroundColor: colors.heartActiveBg,
+    borderColor: colors.heartActiveBorder,
   },
   likeText: {
     fontWeight: '800',
@@ -738,7 +742,7 @@ function createStyles(colors: AppColors) {
     color: colors.text,
   },
   likeTextActive: {
-    color: '#8d3f57',
+    color: colors.heartActiveFg,
   },
   linkBtn: {
     marginTop: 12,
@@ -753,11 +757,6 @@ function createStyles(colors: AppColors) {
     fontWeight: '800',
     fontSize: 13,
     color: colors.text,
-  },
-  error: {
-    color: colors.dangerText,
-    fontWeight: '600',
-    flex: 1,
   },
   snack: {
     backgroundColor: colors.accentDark,

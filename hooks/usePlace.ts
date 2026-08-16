@@ -8,6 +8,8 @@ import {
   updatePlace,
 } from '@/repositories/placesRepository';
 import { getTripsForPlace } from '@/repositories/tripsRepository';
+import i18n from '@/i18n';
+import { errorMessage } from '@/utils/errors';
 
 export function usePlace(id: number | null): {
   place: Place | null;
@@ -29,7 +31,7 @@ export function usePlace(id: number | null): {
       setPlace(null);
       setTrips([]);
       setLoading(false);
-      setError('Некорректный id места');
+      setError(i18n.t('alerts.placeNotFound'));
       return;
     }
     setLoading(true);
@@ -38,9 +40,9 @@ export function usePlace(id: number | null): {
       const [row, linked] = await Promise.all([getPlaceById(db, id), getTripsForPlace(db, id)]);
       setPlace(row);
       setTrips(linked);
-      if (!row) setError('Место не найдено');
+      if (!row) setError(i18n.t('alerts.placeNotFound'));
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Ошибка чтения места';
+      const message = errorMessage(e);
       setError(message);
       console.error('[GoNext] place load failed', e);
     } finally {
