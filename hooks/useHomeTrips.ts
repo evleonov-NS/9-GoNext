@@ -1,11 +1,17 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import type { Place, Trip } from '@/types';
-import { getPlaceById } from '@/repositories/placesRepository';
+import type { Place, Trip, TripIdea } from '@/types';
+import { getAllPlaces, getPlaceById } from '@/repositories/placesRepository';
+import {
+  getAllTripIdeas,
+  getTripIdeaPlaceCounts,
+} from '@/repositories/tripIdeasRepository';
 import {
   getActiveTrip,
+  getNextPlannedTrip,
   getPlannedTripsStartingOn,
+  getTripPlaceCounts,
   getTripPlaces,
   startTrip,
 } from '@/repositories/tripsRepository';
@@ -16,6 +22,9 @@ import {
 import { findNextPending, sortByRouteOrder } from '@/utils/nextPlace';
 import { todayDateOnly } from '@/utils/tripDates';
 
+const HOME_IDEAS_LIMIT = 6;
+const HOME_PLACES_LIMIT = 4;
+
 export type HomeTripsState = {
   active: Trip | null;
   activePending: number;
@@ -23,6 +32,11 @@ export type HomeTripsState = {
   nextPlaceName: string | null;
   nextPlace: Place | null;
   bannerTrip: Trip | null;
+  nextPlanned: Trip | null;
+  nextPlannedPlaceCount: number;
+  ideas: TripIdea[];
+  ideaPlaceCounts: Map<number, number>;
+  wantPlaces: Place[];
   loading: boolean;
   dismissBanner: () => void;
   startBannerTrip: (opts?: {
@@ -35,7 +49,14 @@ export type HomeTripsState = {
   refresh: () => Promise<void>;
 };
 
-/** Данные для баннера старта и блока активной поездки на Главной. */
+function sortWantPlaces(places: Place[]): Place[] {
+  return [...places].sort((a, b) => {
+    if (a.liked !== b.liked) return a.liked ? -1 : 1;
+    return b.updatedAt.localeCompare(a.updatedAt);
+  });
+}
+
+/** Данные Главной: поездки, баннер, идеи, want-места. */
 export function useHomeTrips(): HomeTripsState {
   const db = useSQLiteContext();
   const [active, setActive] = useState<Trip | null>(null);
@@ -44,6 +65,13 @@ export function useHomeTrips(): HomeTripsState {
   const [nextPlaceName, setNextPlaceName] = useState<string | null>(null);
   const [nextPlace, setNextPlace] = useState<Place | null>(null);
   const [bannerTrip, setBannerTrip] = useState<Trip | null>(null);
+  const [nextPlanned, setNextPlanned] = useState<Trip | null>(null);
+  const [nextPlannedPlaceCount, setNextPlannedPlaceCount] = useState(0);
+  const [ideas, setIdeas] = useState<TripIdea[]>([]);
+  const [ideaPlaceCounts, setIdeaPlaceCounts] = useState<Map<number, number>>(
+    new Map()
+  );
+  const [wantPlaces, setWantPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   const [dismissTick, setDismissTick] = useState(0);
 
@@ -51,9 +79,22 @@ export function useHomeTrips(): HomeTripsState {
     setLoading(true);
     try {
       const today = todayDateOnly();
-      const [activeRow, starting] = await Promise.all([
+      const [
+        activeRow,
+        starting,
+        planned,
+        tripCounts,
+        ideaRows,
+        ideaCounts,
+        places,
+      ] = await Promise.all([
         getActiveTrip(db),
         getPlannedTripsStartingOn(db, today),
+        getNextPlannedTrip(db),
+        getTripPlaceCounts(db),
+        getAllTripIdeas(db),
+        getTripIdeaPlaceCounts(db),
+        getAllPlaces(db),
       ]);
       setActive(activeRow);
       if (activeRow) {
@@ -78,6 +119,15 @@ export function useHomeTrips(): HomeTripsState {
 
       const candidate = starting.find((t) => !isStartBannerDismissed(t.id)) ?? null;
       setBannerTrip(candidate);
+
+      setNextPlanned(activeRow ? null : planned);
+      setNextPlannedPlaceCount(planned ? tripCounts.get(planned.id) ?? 0 : 0);
+
+      setIdeas(ideaRows.filter((idea) => idea.status === 'active').slice(0, HOME_IDEAS_LIMIT));
+      setIdeaPlaceCounts(ideaCounts);
+      setWantPlaces(
+        sortWantPlaces(places.filter((p) => p.visitLater)).slice(0, HOME_PLACES_LIMIT)
+      );
     } catch (e) {
       console.error('[GoNext] home trips load failed', e);
     } finally {
@@ -129,6 +179,11 @@ export function useHomeTrips(): HomeTripsState {
     nextPlaceName,
     nextPlace,
     bannerTrip,
+    nextPlanned,
+    nextPlannedPlaceCount,
+    ideas,
+    ideaPlaceCounts,
+    wantPlaces,
     loading,
     dismissBanner,
     startBannerTrip,

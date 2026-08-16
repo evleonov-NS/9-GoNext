@@ -217,6 +217,18 @@ export async function getActiveTrip(db: SQLiteDatabase): Promise<Trip | null> {
   return row ? mapTrip(row) : null;
 }
 
+/** Ближайшая planned-поездка: с датой раньше без даты, затем по start_date. */
+export async function getNextPlannedTrip(db: SQLiteDatabase): Promise<Trip | null> {
+  await enableForeignKeys(db);
+  const row = await db.getFirstAsync<TripRow>(
+    `SELECT * FROM trips
+     WHERE status = 'planned'
+     ORDER BY start_date IS NULL, start_date ASC
+     LIMIT 1`
+  );
+  return row ? mapTrip(row) : null;
+}
+
 /** Запланированные поездки с start_date = dateOnly (YYYY-MM-DD). */
 export async function getPlannedTripsStartingOn(
   db: SQLiteDatabase,

@@ -10,22 +10,29 @@ import {
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ActiveTripCard, IdeaCard, PlaceRow } from '@/components/cards';
-import { SettingsButton } from '@/components/chrome';
+import {
+  ActiveTripCard,
+  IdeaCard,
+  PlaceRow,
+  PlannedTripCard,
+} from '@/components/cards';
+import { EmptyState, SettingsButton } from '@/components/chrome';
 import { GlassView } from '@/components/GlassView';
 import { Screen } from '@/components/Screen';
 import { PageTitle, SectionHeader } from '@/components/ui';
 import { useAddSheet } from '@/components/AddSheetContext';
+import { ideaCoverForId } from '@/constants/priorities';
 import { colors, radii } from '@/constants/theme';
 import { addDays, toDateOnly } from '@/database/helpers';
 import { useHomeTrips } from '@/hooks/useHomeTrips';
-import type { Trip } from '@/types';
+import type { Trip, TripIdea } from '@/types';
 import {
   heroContentOverlap,
   SCREEN_PAD_TOP,
   useHeroHeight,
 } from '@/utils/heroLayout';
 import { openPlaceOnMap } from '@/utils/maps';
+import { pluralPlaces } from '@/utils/plural';
 import { formatTripDates } from '@/utils/tripLabels';
 import { tripDurationDays, todayDateOnly } from '@/utils/tripDates';
 
@@ -55,6 +62,12 @@ function dayLabelForActive(trip: Trip): string {
   return `День ${day}`;
 }
 
+function ideaHomeSub(idea: TripIdea): string {
+  const line = idea.description?.trim().split('\n')[0]?.trim() ?? '';
+  if (!line) return 'Идея поездки';
+  return line.length > 56 ? `${line.slice(0, 54)}…` : line;
+}
+
 function confirmStartConflict(
   activeTrip: Trip,
   nextTitle: string,
@@ -70,7 +83,7 @@ function confirmStartConflict(
   );
 }
 
-/** Главная: баннер старта и активная поездка — живые; идеи/want — статичны до этапа 9. */
+/** Главная: что сейчас важно — active / planned / empty, идеи, want-места. */
 export default function HomeScreen() {
   const router = useRouter();
   const { open } = useAddSheet();
@@ -83,6 +96,12 @@ export default function HomeScreen() {
     nextPlaceName,
     nextPlace,
     bannerTrip,
+    nextPlanned,
+    nextPlannedPlaceCount,
+    ideas,
+    ideaPlaceCounts,
+    wantPlaces,
+    loading,
     dismissBanner,
     startBannerTrip,
   } = useHomeTrips();
@@ -120,6 +139,8 @@ export default function HomeScreen() {
       });
     }
   };
+
+  const showEmptyHero = !loading && !active && !nextPlanned;
 
   return (
     <Screen tabBarPadding hero>
@@ -161,7 +182,7 @@ export default function HomeScreen() {
           <ActiveTripCard
             dayLabel={dayLabelForActive(active)}
             title={active.title}
-            nextName={nextPlaceName ?? 'нет pending'}
+            nextName={nextPlaceName ?? 'все места пройдены'}
             leftAfter={Math.max(0, activePending - (nextPlaceName ? 1 : 0))}
             visited={activeVisited}
             left={activePending}
@@ -186,6 +207,29 @@ export default function HomeScreen() {
             }
           />
         </View>
+      ) : nextPlanned ? (
+        <View style={styles.gap12}>
+          <PlannedTripCard
+            title={nextPlanned.title}
+            dates={formatTripDates(nextPlanned.startDate, nextPlanned.endDate)}
+            countLabel={pluralPlaces(nextPlannedPlaceCount)}
+            onOpen={() =>
+              router.push({
+                pathname: '/trip/[id]',
+                params: { id: String(nextPlanned.id) },
+              })
+            }
+          />
+        </View>
+      ) : showEmptyHero ? (
+        <View style={styles.gap12}>
+          <EmptyState
+            title="Куда хочется поехать?"
+            subtitle="Сохраните идею будущего путешествия."
+            actionLabel="Добавить"
+            onAction={open}
+          />
+        </View>
       ) : null}
 
       <View style={styles.section}>
@@ -194,26 +238,39 @@ export default function HomeScreen() {
           actionLabel="Все"
           onAction={() => router.push('/want')}
         />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.hScroll}
-        >
-          <IdeaCard
-            title="Алтай"
-            sub="Горы и озёра · 5 мест"
-            countLabel="5 мест"
-            cover={['#3a6b4d', '#9dc3aa']}
-            onPress={() => router.push('/want')}
-          />
-          <IdeaCard
-            title="Стамбул"
-            sub="Город на два континента · 6 мест"
-            countLabel="6 мест"
-            cover={['#8b5a2b', '#d9ab7c']}
-            onPress={() => router.push('/want')}
-          />
-        </ScrollView>
+        {ideas.length === 0 ? (
+          <Text style={styles.sectionEmpty}>
+            Пока нет направлений.{' '}
+            <Text style={styles.sectionEmptyLink} onPress={() => router.push('/form/idea')}>
+              Добавить идею
+            </Text>
+          </Text>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.hScroll}
+          >
+            {ideas.map((idea) => {
+              const count = ideaPlaceCounts.get(idea.id) ?? 0;
+              return (
+                <IdeaCard
+                  key={idea.id}
+                  title={idea.title}
+                  sub={ideaHomeSub(idea)}
+                  countLabel={pluralPlaces(count)}
+                  cover={ideaCoverForId(idea.id)}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/idea/[id]',
+                      params: { id: String(idea.id) },
+                    })
+                  }
+                />
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -222,30 +279,32 @@ export default function HomeScreen() {
           actionLabel="Все"
           onAction={() => router.push('/places')}
         />
-        <View style={styles.list}>
-          <PlaceRow
-            name="Парк Монрепо"
-            city="Выборг"
-            category="walk"
-            onPress={() => router.push('/places')}
-          />
-          <PlaceRow
-            name="Рускеала"
-            city="Карелия"
-            category="nature"
-            onPress={() => router.push('/places')}
-          />
-        </View>
-      </View>
-
-      <View style={styles.demoNote}>
-        <Text style={styles.demoNoteText}>
-          Этап 5: баннер старта и активная поездка — из БД. Блоки идей и «хочу»
-          на Главной оживут на этапе 9.
-        </Text>
-        <Text style={styles.demoLink} onPress={open}>
-          Открыть sheet
-        </Text>
+        {wantPlaces.length === 0 ? (
+          <Text style={styles.sectionEmpty}>
+            Отметьте места флагом «Хочу посетить».{' '}
+            <Text style={styles.sectionEmptyLink} onPress={() => router.push('/places')}>
+              Открыть места
+            </Text>
+          </Text>
+        ) : (
+          <View style={styles.list}>
+            {wantPlaces.map((place) => (
+              <PlaceRow
+                key={place.id}
+                name={place.name}
+                city={place.city ?? ''}
+                category={place.category}
+                liked={place.liked}
+                onPress={() =>
+                  router.push({
+                    pathname: '/place/[id]',
+                    params: { id: String(place.id) },
+                  })
+                }
+              />
+            ))}
+          </View>
+        )}
       </View>
     </Screen>
   );
@@ -319,20 +378,12 @@ const styles = StyleSheet.create({
   list: {
     gap: 10,
   },
-  demoNote: {
-    marginTop: 28,
-    padding: 14,
-    borderRadius: radii.md,
-    backgroundColor: colors.surfaceMuted,
-  },
-  demoNoteText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 17,
-  },
-  demoLink: {
-    marginTop: 8,
+  sectionEmpty: {
     fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSecondary,
+  },
+  sectionEmptyLink: {
     fontWeight: '700',
     color: colors.accent,
   },

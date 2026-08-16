@@ -71,6 +71,33 @@ export function ActiveTripCard({
   );
 }
 
+type PlannedTripCardProps = {
+  title: string;
+  dates: string;
+  countLabel: string;
+  onOpen?: () => void;
+};
+
+export function PlannedTripCard({
+  title,
+  dates,
+  countLabel,
+  onOpen,
+}: PlannedTripCardProps) {
+  return (
+    <View style={styles.planned}>
+      <Text style={styles.plannedEyebrow}>СЛЕДУЮЩАЯ ПОЕЗДКА</Text>
+      <Text style={styles.plannedTitle}>{title}</Text>
+      <Text style={styles.plannedSub}>
+        {dates} · {countLabel}
+      </Text>
+      <Pressable style={styles.plannedBtn} onPress={onOpen}>
+        <Text style={styles.plannedBtnText}>Открыть поездку</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 type IdeaCardProps = {
   title: string;
   sub: string;
@@ -294,6 +321,44 @@ const styles = StyleSheet.create({
   linkBtnText: {
     fontSize: 12.5,
     fontWeight: '700',
+    color: colors.textOnAccent,
+  },
+  planned: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sheet,
+    padding: 20,
+  },
+  plannedEyebrow: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    letterSpacing: 0.7,
+    color: colors.accent,
+  },
+  plannedTitle: {
+    marginTop: 12,
+    marginBottom: 8,
+    fontSize: 27,
+    fontWeight: '700',
+    letterSpacing: -0.8,
+    color: colors.text,
+  },
+  plannedSub: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSecondary,
+  },
+  plannedBtn: {
+    marginTop: 18,
+    backgroundColor: colors.accent,
+    borderRadius: radii.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  plannedBtnText: {
+    fontSize: 13.5,
+    fontWeight: '800',
     color: colors.textOnAccent,
   },
   ideaCard: {
