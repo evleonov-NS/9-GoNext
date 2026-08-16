@@ -24,7 +24,8 @@ export default function DiaryScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>День 1</Text>
         <Text style={styles.cardBody}>
-          Заметки и фото появятся после этапов 7–8. Сейчас только каркас UI.
+          Заметки и фото живут в карточке поездки: посещённые места, мини-форма после «Посещено», карточка места.
+
         </Text>
       </View>
     </Screen>

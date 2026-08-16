@@ -13,10 +13,12 @@ import { Snackbar, Text } from 'react-native-paper';
 import { BackButton, EmptyState } from '@/components/chrome';
 import { IconPath } from '@/components/IconPath';
 import { LinearGradientPlaceholder } from '@/components/LinearGradientPlaceholder';
+import { PhotoGallery, promptPhotoSource, type PhotoSource } from '@/components/PhotoGallery';
 import { Screen } from '@/components/Screen';
 import { PLACE_CATEGORIES } from '@/constants/categories';
 import { colors, radii } from '@/constants/theme';
 import { useNextPlace } from '@/hooks/useNextPlace';
+import { usePhotos } from '@/hooks/usePhotos';
 import type { TripPlaceRow } from '@/hooks/useTrip';
 import { formatCoords, hasCoords } from '@/utils/coords';
 import { openPlaceOnMap } from '@/utils/maps';
@@ -61,6 +63,8 @@ export default function NextScreen() {
   const [doneTripId, setDoneTripId] = useState<number | null>(null);
   const [doneTitle, setDoneTitle] = useState<string | null>(null);
 
+  const visitPhotos = usePhotos({ tripPlaceId: visited?.id ?? null });
+
   const showingVisit = mode === 'visit' && visited != null;
   const showingDone =
     mode === 'done' || (!loading && trip != null && next == null && !showingVisit);
@@ -104,6 +108,30 @@ export default function NextScreen() {
 
   const persistVisitExtras = async (row: TripPlaceRow) => {
     await saveVisit(row.id, { notes, liked });
+  };
+
+  const addVisitPhoto = async (source: PhotoSource) => {
+    if (!visited) return;
+    const link = { tripPlaceId: visited.id, placeId: visited.placeId };
+    setBusy(true);
+    try {
+      if (source === 'library') await visitPhotos.addFromLibrary(link);
+      else await visitPhotos.addFromCamera(link);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Фото', e instanceof Error ? e.message : 'Не удалось добавить фото');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteVisitPhoto = async (id: number) => {
+    try {
+      await visitPhotos.remove(id);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Фото', e instanceof Error ? e.message : 'Не удалось удалить фото');
+    }
   };
 
   const goAfterVisit = async (row: TripPlaceRow) => {
@@ -306,11 +334,20 @@ export default function NextScreen() {
           multiline
         />
 
+        <View style={styles.photos}>
+          <PhotoGallery
+            photos={visitPhotos.photos}
+            onAdd={(source) => void addVisitPhoto(source)}
+            onDelete={(photo) => void deleteVisitPhoto(photo.id)}
+            busy={busy}
+            showAddTile={false}
+          />
+        </View>
+
         <Pressable
-          style={styles.secondary}
-          onPress={() =>
-            Alert.alert('Фотографии', 'Добавление фото к посещению — на следующем этапе.')
-          }
+          style={[styles.secondary, busy && styles.disabled]}
+          disabled={busy}
+          onPress={() => promptPhotoSource((source) => void addVisitPhoto(source))}
         >
           <Text style={styles.secondaryText}>+ Добавить фото</Text>
         </Pressable>
@@ -666,6 +703,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     textAlignVertical: 'top',
+  },
+  photos: {
+    marginTop: 12,
   },
   likeBtn: {
     marginTop: 9,

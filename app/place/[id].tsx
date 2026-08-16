@@ -11,11 +11,13 @@ import * as Clipboard from 'expo-clipboard';
 import { Snackbar, Text } from 'react-native-paper';
 import { IconPath } from '@/components/IconPath';
 import { LinearGradientPlaceholder } from '@/components/LinearGradientPlaceholder';
+import { PhotoGallery, type PhotoSource } from '@/components/PhotoGallery';
 import { BackButton } from '@/components/chrome';
 import { Screen } from '@/components/Screen';
 import { PLACE_CATEGORIES } from '@/constants/categories';
 import { colors, radii } from '@/constants/theme';
 import { usePlace } from '@/hooks/usePlace';
+import { usePhotos } from '@/hooks/usePhotos';
 import { formatCoords, hasCoords } from '@/utils/coords';
 import { openPlaceOnMap } from '@/utils/maps';
 import { formatTripDates, tripStatusLabel } from '@/utils/tripLabels';
@@ -25,6 +27,7 @@ export default function PlaceCardScreen() {
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
   const id = idParam ? Number(idParam) : null;
   const { place, trips, loading, error, update, remove } = usePlace(id);
+  const placePhotos = usePhotos({ placeId: id });
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -52,6 +55,29 @@ export default function PlaceCardScreen() {
     } catch (e) {
       console.error(e);
       Alert.alert('Не удалось открыть карту');
+    }
+  };
+
+  const addPlacePhoto = async (source: PhotoSource) => {
+    if (id == null) return;
+    setBusy(true);
+    try {
+      if (source === 'library') await placePhotos.addFromLibrary({ placeId: id });
+      else await placePhotos.addFromCamera({ placeId: id });
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Фото', e instanceof Error ? e.message : 'Не удалось добавить фото');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deletePlacePhoto = async (photoId: number) => {
+    try {
+      await placePhotos.remove(photoId);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Фото', e instanceof Error ? e.message : 'Не удалось удалить фото');
     }
   };
 
@@ -121,6 +147,16 @@ export default function PlaceCardScreen() {
       <Text style={styles.name}>{place.name}</Text>
       {place.city ? <Text style={styles.city}>{place.city}</Text> : null}
       {place.description ? <Text style={styles.desc}>{place.description}</Text> : null}
+
+      <View style={styles.photosBlock}>
+        <Text style={styles.sectionTitle}>Фотографии</Text>
+        <PhotoGallery
+          photos={placePhotos.photos}
+          onAdd={(source) => void addPlacePhoto(source)}
+          onDelete={(photo) => void deletePlacePhoto(photo.id)}
+          busy={busy}
+        />
+      </View>
 
       {coordsReady ? (
         <View style={styles.coordsCard}>
@@ -295,6 +331,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     color: colors.textStrong,
+  },
+  photosBlock: {
+    marginTop: 20,
+    marginBottom: 4,
   },
   coordsCard: {
     marginTop: 16,

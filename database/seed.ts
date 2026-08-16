@@ -243,7 +243,7 @@ export async function seedDemoDataIfNeeded(db: SQLiteDatabase): Promise<boolean>
       priority: 'optional',
     });
 
-    // Запись фото без файла — этап 8 добавит реальные URI; строка нужна для схемы
+    // Запись фото без файла — этап 8 работает с реальными URI; демо-строка схемы не показывается в UI
     await photosRepo.createPhoto(db, {
       uri: 'demo://karelia/kivach-1.jpg',
       placeId: kivach.id,

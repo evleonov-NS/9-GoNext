@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -10,10 +11,12 @@ import {
 import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { PhotoGallery } from '@/components/PhotoGallery';
 import { FilterChip } from '@/components/ui';
 import { PLACE_CATEGORIES } from '@/constants/categories';
 import { PLACE_PRIORITY_LIST } from '@/constants/priorities';
 import { colors, radii } from '@/constants/theme';
+import { usePhotos } from '@/hooks/usePhotos';
 import type { TripPlaceRow } from '@/hooks/useTrip';
 import type { PlacePriority, TripPlaceStatus } from '@/types';
 import { tripPlaceStatusLabel } from '@/utils/tripLabels';
@@ -51,6 +54,8 @@ export function TripPlaceSheet({
 }: Props) {
   const insets = useSafeAreaInsets();
   const [notes, setNotes] = useState('');
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const tripPhotos = usePhotos({ tripPlaceId: item?.id ?? null });
 
   useEffect(() => {
     setNotes(item?.notes ?? '');
@@ -138,6 +143,41 @@ export function TripPlaceSheet({
               style={styles.notes}
               multiline
             />
+
+            <Text style={styles.label}>Фотографии</Text>
+            <View style={styles.photos}>
+              <PhotoGallery
+                photos={tripPhotos.photos}
+                onAdd={(source) => {
+                  void (async () => {
+                    const link = { tripPlaceId: item.id, placeId: item.placeId };
+                    setPhotoBusy(true);
+                    try {
+                      if (source === 'library') await tripPhotos.addFromLibrary(link);
+                      else await tripPhotos.addFromCamera(link);
+                    } catch (e) {
+                      console.error(e);
+                      Alert.alert(
+                        'Фото',
+                        e instanceof Error ? e.message : 'Не удалось добавить фото'
+                      );
+                    } finally {
+                      setPhotoBusy(false);
+                    }
+                  })();
+                }}
+                onDelete={(photo) => {
+                  void tripPhotos.remove(photo.id).catch((e) => {
+                    console.error(e);
+                    Alert.alert(
+                      'Фото',
+                      e instanceof Error ? e.message : 'Не удалось удалить фото'
+                    );
+                  });
+                }}
+                busy={photoBusy}
+              />
+            </View>
 
             <View style={styles.row}>
               <Pressable
@@ -278,6 +318,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     textAlignVertical: 'top',
+    marginBottom: 14,
+  },
+  photos: {
     marginBottom: 14,
   },
   row: {

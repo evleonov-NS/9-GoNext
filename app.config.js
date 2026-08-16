@@ -41,7 +41,19 @@ module.exports = {
     output: 'static',
     favicon: './assets/images/favicon.png',
   },
-  plugins: ['expo-router', 'expo-sqlite', '@react-native-community/datetimepicker'],
+  plugins: [
+    'expo-router',
+    'expo-sqlite',
+    '@react-native-community/datetimepicker',
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'GoNext сохраняет выбранные фото к местам и посещениям.',
+        cameraPermission: 'GoNext использует камеру, чтобы добавить фото к месту или посещению.',
+        microphonePermission: false,
+      },
+    ],
+  ],
   experiments: {
     typedRoutes: true,
   },
