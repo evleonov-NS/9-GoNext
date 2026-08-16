@@ -5,7 +5,7 @@
  * Не хардкодить номер версии в UI, логах, app.config, имени установщика —
  * импортировать отсюда `__version__` / helpers.
  */
-const __version__ = '0.7.0';
+const __version__ = '0.8.0';
 
 function pad(n) {
   return String(n).padStart(2, '0');

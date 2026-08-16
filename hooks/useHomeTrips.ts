@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import type { Trip } from '@/types';
+import type { Place, Trip } from '@/types';
 import { getPlaceById } from '@/repositories/placesRepository';
 import {
   getActiveTrip,
@@ -13,6 +13,7 @@ import {
   dismissStartBanner,
   isStartBannerDismissed,
 } from '@/utils/startBannerSession';
+import { findNextPending, sortByRouteOrder } from '@/utils/nextPlace';
 import { todayDateOnly } from '@/utils/tripDates';
 
 export type HomeTripsState = {
@@ -20,6 +21,7 @@ export type HomeTripsState = {
   activePending: number;
   activeVisited: number;
   nextPlaceName: string | null;
+  nextPlace: Place | null;
   bannerTrip: Trip | null;
   loading: boolean;
   dismissBanner: () => void;
@@ -40,6 +42,7 @@ export function useHomeTrips(): HomeTripsState {
   const [activePending, setActivePending] = useState(0);
   const [activeVisited, setActiveVisited] = useState(0);
   const [nextPlaceName, setNextPlaceName] = useState<string | null>(null);
+  const [nextPlace, setNextPlace] = useState<Place | null>(null);
   const [bannerTrip, setBannerTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [dismissTick, setDismissTick] = useState(0);
@@ -54,20 +57,22 @@ export function useHomeTrips(): HomeTripsState {
       ]);
       setActive(activeRow);
       if (activeRow) {
-        const places = await getTripPlaces(db, activeRow.id);
-        const ordered = [...places].sort((a, b) => a.sortOrder - b.sortOrder);
+        const ordered = sortByRouteOrder(await getTripPlaces(db, activeRow.id));
         setActivePending(ordered.filter((p) => p.status === 'pending').length);
         setActiveVisited(ordered.filter((p) => p.status === 'visited').length);
-        const next = ordered.find((p) => p.status === 'pending');
+        const next = findNextPending(ordered);
         if (next) {
           const place = await getPlaceById(db, next.placeId);
+          setNextPlace(place);
           setNextPlaceName(place?.name ?? null);
         } else {
+          setNextPlace(null);
           setNextPlaceName(null);
         }
       } else {
         setActivePending(0);
         setActiveVisited(0);
+        setNextPlace(null);
         setNextPlaceName(null);
       }
 
@@ -122,6 +127,7 @@ export function useHomeTrips(): HomeTripsState {
     activePending,
     activeVisited,
     nextPlaceName,
+    nextPlace,
     bannerTrip,
     loading,
     dismissBanner,

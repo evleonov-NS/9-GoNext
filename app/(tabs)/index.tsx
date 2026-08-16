@@ -25,6 +25,7 @@ import {
   SCREEN_PAD_TOP,
   useHeroHeight,
 } from '@/utils/heroLayout';
+import { openPlaceOnMap } from '@/utils/maps';
 import { formatTripDates } from '@/utils/tripLabels';
 import { tripDurationDays, todayDateOnly } from '@/utils/tripDates';
 
@@ -80,6 +81,7 @@ export default function HomeScreen() {
     activePending,
     activeVisited,
     nextPlaceName,
+    nextPlace,
     bannerTrip,
     dismissBanner,
     startBannerTrip,
@@ -165,6 +167,17 @@ export default function HomeScreen() {
             left={activePending}
             dates={formatTripDates(active.startDate, active.endDate)}
             onNext={() => router.push('/next')}
+            onNavigator={() => {
+              if (!nextPlace) return;
+              void openPlaceOnMap({
+                name: nextPlace.name,
+                latitude: nextPlace.latitude,
+                longitude: nextPlace.longitude,
+              }).catch((e) => {
+                console.error(e);
+                Alert.alert('Не удалось открыть карту');
+              });
+            }}
             onOpenTrip={() =>
               router.push({
                 pathname: '/trip/[id]',
