@@ -11,7 +11,8 @@ import { TripRow } from '@/components/cards';
 import { EmptyState } from '@/components/chrome';
 import { Screen } from '@/components/Screen';
 import { FilterChip, PageTitle } from '@/components/ui';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import { useTrips } from '@/hooks/useTrips';
 import type { TripStatus } from '@/types';
 import { pluralPlaces } from '@/utils/plural';
@@ -34,6 +35,8 @@ function tabToStatus(tab: (typeof TRIP_TABS)[number]): TripStatus | null {
 }
 
 export default function TripsScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { trips, placeCounts, loading, error } = useTrips();
   const [tab, setTab] = useState<(typeof TRIP_TABS)[number]>('Все');
@@ -122,7 +125,8 @@ export default function TripsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   search: {
     width: '100%',
     borderWidth: 1,
@@ -149,7 +153,8 @@ const styles = StyleSheet.create({
   },
   error: {
     marginTop: 16,
-    color: '#b42318',
+    color: colors.dangerText,
     fontWeight: '600',
   },
-});
+  });
+}

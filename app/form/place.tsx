@@ -19,12 +19,15 @@ import {
   PLACE_CATEGORY_LIST,
   type PlaceCategoryId,
 } from '@/constants/categories';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import { createPlace, getPlaceById, updatePlace } from '@/repositories/placesRepository';
 import type { PlaceInput } from '@/types';
 import { formatCoords, parseCoord, parseCoordsPair } from '@/utils/coords';
 
 export default function FormPlaceScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const db = useSQLiteContext();
   const params = useLocalSearchParams<{ id?: string }>();
@@ -339,7 +342,8 @@ export default function FormPlaceScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -479,4 +483,5 @@ const styles = StyleSheet.create({
   snack: {
     backgroundColor: colors.accentDark,
   },
-});
+  });
+}

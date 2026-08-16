@@ -15,7 +15,8 @@ import {
   ideaCoverForId,
   ideaStatusLabel,
 } from '@/constants/priorities';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import { useTripIdeas } from '@/hooks/useTripIdeas';
 import { updatePlace } from '@/repositories/placesRepository';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -33,6 +34,8 @@ function pluralPlaces(n: number): string {
 }
 
 export default function WantScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const db = useSQLiteContext();
   const { ideas, placeCounts, visitLaterPlaces, loading, error, refresh } = useTripIdeas();
@@ -183,7 +186,8 @@ export default function WantScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   search: {
     width: '100%',
     borderWidth: 1,
@@ -213,7 +217,8 @@ const styles = StyleSheet.create({
   },
   error: {
     marginTop: 16,
-    color: '#b42318',
+    color: colors.dangerText,
     fontWeight: '600',
   },
-});
+  });
+}

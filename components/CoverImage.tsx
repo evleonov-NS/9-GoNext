@@ -7,6 +7,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { useAppTheme } from '@/components/ThemeContext';
 
 type Props = {
   source: ImageSourcePropType;
@@ -14,17 +15,26 @@ type Props = {
   children?: ReactNode;
 };
 
-/** Обложка: cover, обрезка сверху, без озвучки скринридером. */
+/** Обложка: cover, обрезка сверху, без озвучки скринридером. В тёмной теме картинка скрыта. */
 export function CoverImage({ source, style, children }: Props) {
+  const { colors, showArtwork } = useAppTheme();
   return (
-    <View style={[styles.clip, style]}>
-      <Image
-        source={source}
-        style={styles.img}
-        resizeMode="cover"
-        accessible={false}
-        importantForAccessibility="no"
-      />
+    <View
+      style={[
+        styles.clip,
+        !showArtwork && { backgroundColor: colors.surfaceMuted },
+        style,
+      ]}
+    >
+      {showArtwork ? (
+        <Image
+          source={source}
+          style={styles.img}
+          resizeMode="cover"
+          accessible={false}
+          importantForAccessibility="no"
+        />
+      ) : null}
       {children ? <View style={styles.content} pointerEvents="box-none">{children}</View> : null}
     </View>
   );

@@ -13,7 +13,8 @@ import DateTimePicker, {
 } from '@react-native-community/datetimepicker';
 import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import {
   dateFromIso,
   displayFromIso,
@@ -43,6 +44,8 @@ export function DateField({
   focused = false,
   autoFocus = false,
 }: Props) {
+  const { colors, isDark } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [text, setText] = useState(() => displayFromIso(value));
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -143,6 +146,7 @@ export function DateField({
           value={draft}
           mode="date"
           display="default"
+          themeVariant={isDark ? 'dark' : 'light'}
           onChange={onPickerChange}
         />
       ) : null}
@@ -166,7 +170,7 @@ export function DateField({
                   value={draft}
                   mode="date"
                   display="inline"
-                  themeVariant="light"
+                  themeVariant={isDark ? 'dark' : 'light'}
                   accentColor={colors.accent}
                   onChange={onPickerChange}
                   locale="ru-RU"
@@ -212,7 +216,8 @@ export function DateField({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   wrap: {
     marginBottom: 14,
   },
@@ -268,7 +273,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iosSheet: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: radii.sheet,
     borderTopRightRadius: radii.sheet,
     paddingTop: 12,
@@ -296,7 +301,7 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
   iosPickerWrap: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     alignItems: 'center',
     paddingHorizontal: 8,
   },
@@ -337,4 +342,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
   },
-});
+  });
+}

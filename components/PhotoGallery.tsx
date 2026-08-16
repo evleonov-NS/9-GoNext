@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import type { Photo } from '@/types';
 import { isDisplayablePhotoUri } from '@/services/photos';
 
@@ -42,6 +43,8 @@ export function PhotoGallery({
   addLabel = '+ Добавить фото',
   showAddTile = true,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [viewer, setViewer] = useState<Photo | null>(null);
   const visible = photos.filter((p) => isDisplayablePhotoUri(p.uri));
@@ -130,7 +133,8 @@ export function PhotoGallery({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   wrap: {
     marginTop: 4,
   },
@@ -199,11 +203,12 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   viewerDanger: {
-    backgroundColor: '#fdf6f5',
+    backgroundColor: colors.dangerBg,
   },
   viewerDangerText: {
     fontWeight: '800',
     fontSize: 13,
-    color: '#b42318',
+    color: colors.dangerText,
   },
-});
+  });
+}

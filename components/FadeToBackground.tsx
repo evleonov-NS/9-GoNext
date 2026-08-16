@@ -1,5 +1,5 @@
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors } from '@/constants/theme';
+import { useAppTheme } from '@/components/ThemeContext';
 
 type Props = {
   height: number;
@@ -13,7 +13,9 @@ const STEPS = 36;
  * Растворение картинки в фон экрана: полосы одного цвета с растущей альфой.
  * Своя реализация вместо expo-linear-gradient — как LinearGradientPlaceholder.
  */
-export function FadeToBackground({ height, color = colors.bg, style }: Props) {
+export function FadeToBackground({ height, color, style }: Props) {
+  const { colors } = useAppTheme();
+  const fadeColor = color ?? colors.bg;
   return (
     <View pointerEvents="none" style={[styles.wrap, { height }, style]}>
       {Array.from({ length: STEPS }, (_, i) => (
@@ -21,7 +23,7 @@ export function FadeToBackground({ height, color = colors.bg, style }: Props) {
           key={i}
           style={{
             flex: 1,
-            backgroundColor: color,
+            backgroundColor: fadeColor,
             opacity: Math.pow((i + 1) / STEPS, 1.8),
           }}
         />

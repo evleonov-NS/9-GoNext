@@ -16,7 +16,8 @@ import { TripPlaceSheet } from '@/components/TripPlaceSheet';
 import { artwork } from '@/constants/artwork';
 import { PLACE_CATEGORIES } from '@/constants/categories';
 import { PLACE_PRIORITIES } from '@/constants/priorities';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import {
   markVisitedToday,
   useTrip,
@@ -89,6 +90,8 @@ function confirmStartConflict(
 }
 
 export default function TripCardScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
   const id = idParam ? Number(idParam) : null;
@@ -473,7 +476,8 @@ export default function TripCardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -669,7 +673,8 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   error: {
-    color: '#b42318',
+    color: colors.dangerText,
     fontWeight: '600',
   },
-});
+  });
+}

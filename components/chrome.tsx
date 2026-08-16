@@ -3,8 +3,9 @@ import { Text } from 'react-native-paper';
 import { FadeToBackground } from '@/components/FadeToBackground';
 import { GlassView } from '@/components/GlassView';
 import { IconPath } from '@/components/IconPath';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { artwork } from '@/constants/artwork';
-import { colors, radii } from '@/constants/theme';
+import { radii, type AppColors } from '@/constants/theme';
 
 type Props = {
   onPress?: () => void;
@@ -12,6 +13,8 @@ type Props = {
 };
 
 export function SettingsButton({ onPress, variant = 'solid' }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const glass = variant === 'glass';
   const icon = (
     <IconPath
@@ -39,6 +42,8 @@ type BackButtonProps = {
 };
 
 export function BackButton({ onPress }: BackButtonProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable style={styles.btn} onPress={onPress}>
       <IconPath d="M15 19l-7-7 7-7" size={19} color={colors.textStrong} strokeWidth={2} />
@@ -61,9 +66,12 @@ export function EmptyState({
   onAction,
   illustrated = false,
 }: EmptyStateProps) {
+  const { colors, showArtwork } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+  const showHero = illustrated && showArtwork;
   return (
     <View style={styles.empty}>
-      {illustrated ? (
+      {showHero ? (
         <View style={styles.emptyHero} pointerEvents="none">
           <Image
             source={artwork.hero}
@@ -83,7 +91,7 @@ export function EmptyState({
           />
         </View>
       )}
-      <View style={[styles.emptyBody, !illustrated && styles.emptyBodyPlain]}>
+      <View style={[styles.emptyBody, !showHero && styles.emptyBodyPlain]}>
         <Text style={styles.emptyTitle}>{title}</Text>
         <Text style={styles.emptySub}>{subtitle}</Text>
         {actionLabel ? (
@@ -96,82 +104,84 @@ export function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
-  btn: {
-    width: 42,
-    height: 42,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnGlass: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  empty: {
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.card,
-    paddingBottom: 26,
-    overflow: 'hidden',
-    alignItems: 'center',
-  },
-  emptyHero: {
-    width: '100%',
-    height: 168,
-  },
-  emptyBody: {
-    width: '100%',
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 0,
-    alignItems: 'center',
-  },
-  emptyBodyPlain: {
-    paddingTop: 0,
-  },
-  emptyIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: radii.xl,
-    backgroundColor: colors.accentMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 26,
-    marginBottom: 14,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    color: colors.text,
-    textAlign: 'center',
-  },
-  emptySub: {
-    marginTop: 8,
-    marginBottom: 18,
-    fontSize: 13,
-    lineHeight: 20,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  emptyBtn: {
-    width: '100%',
-    backgroundColor: colors.accent,
-    borderRadius: radii.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  emptyBtnText: {
-    fontSize: 13.5,
-    fontWeight: '800',
-    color: colors.textOnAccent,
-  },
-});
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    btn: {
+      width: 42,
+      height: 42,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radii.sm,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    btnGlass: {
+      width: 42,
+      height: 42,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    empty: {
+      backgroundColor: colors.bg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radii.card,
+      paddingBottom: 26,
+      overflow: 'hidden',
+      alignItems: 'center',
+    },
+    emptyHero: {
+      width: '100%',
+      height: 168,
+    },
+    emptyBody: {
+      width: '100%',
+      paddingHorizontal: 20,
+      paddingTop: 18,
+      paddingBottom: 0,
+      alignItems: 'center',
+    },
+    emptyBodyPlain: {
+      paddingTop: 0,
+    },
+    emptyIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: radii.xl,
+      backgroundColor: colors.accentMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 26,
+      marginBottom: 14,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      letterSpacing: -0.3,
+      color: colors.text,
+      textAlign: 'center',
+    },
+    emptySub: {
+      marginTop: 8,
+      marginBottom: 18,
+      fontSize: 13,
+      lineHeight: 20,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    emptyBtn: {
+      width: '100%',
+      backgroundColor: colors.accent,
+      borderRadius: radii.md,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    emptyBtnText: {
+      fontSize: 13.5,
+      fontWeight: '800',
+      color: colors.textOnAccent,
+    },
+  });
+}

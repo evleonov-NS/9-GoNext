@@ -13,7 +13,8 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { BackButton } from '@/components/chrome';
 import { DateField } from '@/components/DateField';
 import { Screen } from '@/components/Screen';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import { getTripIdeaById, getTripIdeaPlaces } from '@/repositories/tripIdeasRepository';
 import {
   clearTripPlaceDaysBeyond,
@@ -27,6 +28,8 @@ import { pluralPlaces } from '@/utils/plural';
 import { tripDurationDays } from '@/utils/tripDates';
 
 export default function FormTripScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const db = useSQLiteContext();
   const params = useLocalSearchParams<{
@@ -292,7 +295,8 @@ export default function FormTripScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -367,14 +371,15 @@ const styles = StyleSheet.create({
   deleteBtn: {
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#f0d4d0',
-    backgroundColor: '#fdf6f5',
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
     borderRadius: radii.md,
     paddingVertical: 14,
     alignItems: 'center',
   },
   deleteText: {
     fontWeight: '800',
-    color: '#b42318',
+    color: colors.dangerText,
   },
-});
+  });
+}

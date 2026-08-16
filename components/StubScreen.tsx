@@ -4,7 +4,8 @@ import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { BackButton } from '@/components/chrome';
 import { Screen } from '@/components/Screen';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 
 type Props = {
   eyebrow: string;
@@ -14,6 +15,8 @@ type Props = {
 };
 
 export function StubScreen({ eyebrow, title, body, children }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
 
   return (
@@ -34,7 +37,8 @@ export function StubScreen({ eyebrow, title, body, children }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -75,4 +79,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.accent,
   },
-});
+  });
+}

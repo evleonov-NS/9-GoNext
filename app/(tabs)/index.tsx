@@ -19,10 +19,11 @@ import {
 import { EmptyState, SettingsButton } from '@/components/chrome';
 import { GlassView } from '@/components/GlassView';
 import { Screen } from '@/components/Screen';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { PageTitle, SectionHeader } from '@/components/ui';
 import { useAddSheet } from '@/components/AddSheetContext';
 import { ideaCoverForId } from '@/constants/priorities';
-import { colors, radii } from '@/constants/theme';
+import { radii, type AppColors } from '@/constants/theme';
 import { addDays, toDateOnly } from '@/database/helpers';
 import { useHomeTrips } from '@/hooks/useHomeTrips';
 import type { Trip, TripIdea } from '@/types';
@@ -89,6 +90,8 @@ export default function HomeScreen() {
   const { open } = useAddSheet();
   const insets = useSafeAreaInsets();
   const heroHeight = useHeroHeight();
+  const { showArtwork } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const {
     active,
     activePending,
@@ -112,12 +115,14 @@ export default function HomeScreen() {
   };
 
   /** Карточка под hero начинается на границе растворения, а не после стыка. */
-  const heroSpacer = Math.max(
-    12,
-    heroHeight -
-      heroContentOverlap(heroHeight) -
-      (SCREEN_PAD_TOP + insets.top + onHeroHeight)
-  );
+  const heroSpacer = showArtwork
+    ? Math.max(
+        12,
+        heroHeight -
+          heroContentOverlap(heroHeight) -
+          (SCREEN_PAD_TOP + insets.top + onHeroHeight)
+      )
+    : 8;
 
   const runBannerStart = async (completePrevious?: boolean) => {
     if (!bannerTrip) return;
@@ -149,7 +154,12 @@ export default function HomeScreen() {
           tone="onHero"
           eyebrow={`GoNext · ${formatToday()}`}
           title="Куда дальше?"
-          right={<SettingsButton variant="glass" onPress={() => router.push('/settings')} />}
+          right={
+            <SettingsButton
+              variant={showArtwork ? 'glass' : 'solid'}
+              onPress={() => router.push('/settings')}
+            />
+          }
         />
 
         {bannerTrip ? (
@@ -310,7 +320,8 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   hint: {
     borderRadius: radii.xxl,
     padding: 16,
@@ -387,4 +398,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.accent,
   },
-});
+  });
+}

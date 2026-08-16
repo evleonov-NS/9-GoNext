@@ -14,7 +14,8 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { BackButton, EmptyState } from '@/components/chrome';
 import { Screen } from '@/components/Screen';
 import { PLACE_CATEGORIES } from '@/constants/categories';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import { getAllPlaces } from '@/repositories/placesRepository';
 import {
   addTripIdeaPlacesBulk,
@@ -30,6 +31,8 @@ import type { Place } from '@/types';
 import { textMatchesQuery } from '@/utils/keyboardLayout';
 
 export default function PickerScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const db = useSQLiteContext();
   const params = useLocalSearchParams<{ mode?: string; ideaId?: string; tripId?: string }>();
@@ -234,7 +237,8 @@ export default function PickerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -344,4 +348,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textOnAccent,
   },
-});
+  });
+}

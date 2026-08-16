@@ -5,9 +5,11 @@ import { BackButton } from '@/components/chrome';
 import { CoverImage } from '@/components/CoverImage';
 import { Screen } from '@/components/Screen';
 import { artwork } from '@/constants/artwork';
-import { colors, radii } from '@/constants/theme';
+import { useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 
 export default function DiaryScreen() {
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
 
   return (
@@ -32,7 +34,8 @@ export default function DiaryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   root: {
     backgroundColor: colors.diaryBgTop,
   },
@@ -88,4 +91,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.hintText,
   },
-});
+  });
+}

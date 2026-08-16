@@ -2,7 +2,8 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 
 type Props = {
   visible: boolean;
@@ -16,6 +17,8 @@ const ACTIONS = [
 ];
 
 export function AddSheet({ visible, onClose }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -56,7 +59,8 @@ export function AddSheet({ visible, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: colors.overlay,
@@ -109,4 +113,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.text,
   },
-});
+  });
+}

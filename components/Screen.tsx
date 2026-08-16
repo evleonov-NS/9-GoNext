@@ -2,7 +2,8 @@ import { ReactNode } from 'react';
 import { ScrollView, StyleSheet, useWindowDimensions, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HeroBackdrop } from '@/components/HeroBackdrop';
-import { colors } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import type { AppColors } from '@/constants/theme';
 import { SCREEN_PAD_TOP, useHeroHeight } from '@/utils/heroLayout';
 
 type Props = {
@@ -25,9 +26,12 @@ export function Screen({
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const heroHeight = useHeroHeight();
+  const { colors, showArtwork } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const bottomPad = tabBarPadding ? 110 + insets.bottom : 24 + insets.bottom;
 
-  const heroLayer = hero ? <HeroBackdrop width={width} height={heroHeight} /> : null;
+  const heroLayer =
+    hero && showArtwork ? <HeroBackdrop width={width} height={heroHeight} /> : null;
 
   const body = (
     <View
@@ -43,7 +47,7 @@ export function Screen({
 
   if (!scroll) {
     return (
-      <View style={styles.root}>
+      <View style={[styles.root, { backgroundColor: colors.bg }]}>
         {heroLayer}
         {body}
       </View>
@@ -52,7 +56,7 @@ export function Screen({
 
   return (
     <ScrollView
-      style={styles.root}
+      style={[styles.root, { backgroundColor: colors.bg }]}
       contentContainerStyle={{ flexGrow: 1 }}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -63,13 +67,14 @@ export function Screen({
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  inner: {
-    paddingHorizontal: 18,
-    zIndex: 1,
-  },
-});
+function createStyles(_colors: AppColors) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+    },
+    inner: {
+      paddingHorizontal: 18,
+      zIndex: 1,
+    },
+  });
+}

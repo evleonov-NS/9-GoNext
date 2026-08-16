@@ -2,10 +2,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { CoverImage } from '@/components/CoverImage';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { useThemedStyles } from '@/components/ThemeContext';
 import type { PlaceCategoryId } from '@/constants/categories';
 import { PLACE_CATEGORIES } from '@/constants/categories';
 import { artwork } from '@/constants/artwork';
-import { colors, radii } from '@/constants/theme';
+import { radii, type AppColors } from '@/constants/theme';
 
 type ActiveTripCardProps = {
   dayLabel: string;
@@ -32,6 +33,7 @@ export function ActiveTripCard({
   onNavigator,
   onOpenTrip,
 }: ActiveTripCardProps) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.active}>
       <View style={styles.activeGlow} />
@@ -84,6 +86,7 @@ export function PlannedTripCard({
   countLabel,
   onOpen,
 }: PlannedTripCardProps) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.planned}>
       <Text style={styles.plannedEyebrow}>СЛЕДУЮЩАЯ ПОЕЗДКА</Text>
@@ -117,6 +120,7 @@ export function IdeaCard({
   variant = 'compact',
   metaRight = 'без дат',
 }: IdeaCardProps) {
+  const styles = useThemedStyles(createStyles);
   if (variant === 'full') {
     return (
       <Pressable style={styles.ideaFull} onPress={onPress}>
@@ -168,6 +172,7 @@ export function PlaceRow({
   onPress,
   onToggleLiked,
 }: PlaceRowProps) {
+  const styles = useThemedStyles(createStyles);
   const cat = PLACE_CATEGORIES[category];
   const meta = city ? `${city} · ${cat.shortLabel}` : cat.shortLabel;
   return (
@@ -207,6 +212,7 @@ export function TripRow({
   countLabel,
   onPress,
 }: TripRowProps) {
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable style={styles.tripRow} onPress={onPress}>
       <View style={styles.tripTop}>
@@ -219,7 +225,8 @@ export function TripRow({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   active: {
     backgroundColor: colors.accent,
     borderRadius: radii.sheet,
@@ -477,15 +484,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heartBtnActive: {
-    backgroundColor: '#fdeef2',
-    borderColor: '#f0d4dc',
+    backgroundColor: colors.heartActiveBg,
+    borderColor: colors.heartActiveBorder,
   },
   heartText: {
     fontSize: 14,
     color: colors.textMuted,
   },
   heartTextActive: {
-    color: '#8d3f57',
+    color: colors.heartActiveFg,
   },
   tripRow: {
     backgroundColor: colors.surface,
@@ -520,4 +527,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
   },
-});
+  });
+}

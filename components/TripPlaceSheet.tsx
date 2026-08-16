@@ -15,7 +15,8 @@ import { PhotoGallery } from '@/components/PhotoGallery';
 import { FilterChip } from '@/components/ui';
 import { PLACE_CATEGORIES } from '@/constants/categories';
 import { PLACE_PRIORITY_LIST } from '@/constants/priorities';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import { usePhotos } from '@/hooks/usePhotos';
 import type { TripPlaceRow } from '@/hooks/useTrip';
 import type { PlacePriority, TripPlaceStatus } from '@/types';
@@ -52,6 +53,8 @@ export function TripPlaceSheet({
   onRemove,
   onOpenPlace,
 }: Props) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const [notes, setNotes] = useState('');
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -229,7 +232,8 @@ export function TripPlaceSheet({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: colors.overlay,
@@ -368,8 +372,8 @@ const styles = StyleSheet.create({
   },
   danger: {
     borderWidth: 1,
-    borderColor: '#f0d4d0',
-    backgroundColor: '#fdf6f5',
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
     borderRadius: radii.md,
     paddingVertical: 14,
     alignItems: 'center',
@@ -378,6 +382,7 @@ const styles = StyleSheet.create({
   dangerText: {
     fontWeight: '800',
     fontSize: 13,
-    color: '#b42318',
+    color: colors.dangerText,
   },
-});
+  });
+}

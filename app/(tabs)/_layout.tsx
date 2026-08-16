@@ -7,8 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddSheet } from '@/components/AddSheet';
 import { useAddSheet } from '@/components/AddSheetContext';
 import { IconPath } from '@/components/IconPath';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
 import { NAV_ICONS } from '@/constants/categories';
-import { colors, radii } from '@/constants/theme';
+import { radii, type AppColors } from '@/constants/theme';
 
 type TabKey = 'index' | 'want' | 'trips' | 'places';
 
@@ -22,6 +23,7 @@ const TABS: { name: TabKey; label: string; icon: keyof typeof NAV_ICONS }[] = [
 function FloatingFab() {
   const { open } = useAddSheet();
   const insets = useSafeAreaInsets();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <Pressable
@@ -36,6 +38,8 @@ function FloatingFab() {
 
 function PrototypeTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <View
@@ -79,13 +83,15 @@ function PrototypeTabBar({ state, navigation }: BottomTabBarProps) {
 export default function TabsLayout() {
   const { visible, close } = useAddSheet();
   const [mounted, setMounted] = useState(false);
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
       <Tabs
         tabBar={(props) => <PrototypeTabBar {...props} />}
         screenOptions={{ headerShown: false }}
@@ -101,10 +107,10 @@ export default function TabsLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.bg,
   },
   tabBarWrap: {
     position: 'absolute',
@@ -114,7 +120,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     height: 76,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    backgroundColor: colors.tabBarBg,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.card,
@@ -159,4 +165,5 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     fontWeight: '400',
   },
-});
+  });
+}

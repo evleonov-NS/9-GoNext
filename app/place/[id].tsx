@@ -15,7 +15,8 @@ import { PhotoGallery, type PhotoSource } from '@/components/PhotoGallery';
 import { BackButton } from '@/components/chrome';
 import { Screen } from '@/components/Screen';
 import { PLACE_CATEGORIES } from '@/constants/categories';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import { usePlace } from '@/hooks/usePlace';
 import { usePhotos } from '@/hooks/usePhotos';
 import { formatCoords, hasCoords } from '@/utils/coords';
@@ -23,6 +24,8 @@ import { openPlaceOnMap } from '@/utils/maps';
 import { formatTripDates, tripStatusLabel } from '@/utils/tripLabels';
 
 export default function PlaceCardScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
   const id = idParam ? Number(idParam) : null;
@@ -289,7 +292,8 @@ export default function PlaceCardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -499,21 +503,22 @@ const styles = StyleSheet.create({
   },
   deleteBtn: {
     borderWidth: 1,
-    borderColor: '#f0d4d0',
-    backgroundColor: '#fdf6f5',
+    borderColor: colors.dangerBorder,
+    backgroundColor: colors.dangerBg,
     borderRadius: radii.md,
     paddingVertical: 14,
     alignItems: 'center',
   },
   deleteBtnText: {
     fontWeight: '800',
-    color: '#b42318',
+    color: colors.dangerText,
   },
   error: {
-    color: '#b42318',
+    color: colors.dangerText,
     fontWeight: '600',
   },
   snack: {
     backgroundColor: colors.accentDark,
   },
-});
+  });
+}

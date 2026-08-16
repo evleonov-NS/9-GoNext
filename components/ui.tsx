@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 
 type ChipProps = {
   label: string;
@@ -10,6 +11,8 @@ type ChipProps = {
 };
 
 export function FilterChip({ label, active = false, onPress }: ChipProps) {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -43,6 +46,7 @@ export function SectionHeader({
   actionLabel,
   onAction,
 }: SectionHeaderProps) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.sectionRow}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -63,7 +67,9 @@ type PageTitleProps = {
 };
 
 export function PageTitle({ eyebrow, title, right, tone = 'default' }: PageTitleProps) {
-  const onHero = tone === 'onHero';
+  const { showArtwork } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
+  const onHero = tone === 'onHero' && showArtwork;
   return (
     <View style={styles.titleRow}>
       <View style={styles.titleText}>
@@ -75,61 +81,63 @@ export function PageTitle({ eyebrow, title, right, tone = 'default' }: PageTitle
   );
 }
 
-const styles = StyleSheet.create({
-  chip: {
-    borderWidth: 1,
-    borderRadius: radii.pill,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginHorizontal: 2,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-    color: colors.text,
-  },
-  sectionAction: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.accent,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 18,
-  },
-  titleText: {
-    flex: 1,
-  },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  title: {
-    marginTop: 6,
-    fontSize: 30,
-    fontWeight: '700',
-    letterSpacing: -1.2,
-    color: colors.text,
-  },
-  eyebrowOnHero: {
-    color: colors.onHeroEyebrow,
-  },
-  titleOnHero: {
-    color: colors.onHeroText,
-  },
-});
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    chip: {
+      borderWidth: 1,
+      borderRadius: radii.pill,
+      paddingHorizontal: 13,
+      paddingVertical: 9,
+    },
+    chipText: {
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    sectionRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginHorizontal: 2,
+      marginBottom: 12,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      letterSpacing: -0.4,
+      color: colors.text,
+    },
+    sectionAction: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.accent,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: 12,
+      marginBottom: 18,
+    },
+    titleText: {
+      flex: 1,
+    },
+    eyebrow: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    title: {
+      marginTop: 6,
+      fontSize: 30,
+      fontWeight: '700',
+      letterSpacing: -1.2,
+      color: colors.text,
+    },
+    eyebrowOnHero: {
+      color: colors.onHeroEyebrow,
+    },
+    titleOnHero: {
+      color: colors.onHeroText,
+    },
+  });
+}

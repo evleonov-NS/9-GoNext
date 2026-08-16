@@ -19,7 +19,8 @@ import {
   ideaStatusLabel,
   PLACE_PRIORITIES,
 } from '@/constants/priorities';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import { useTripIdea, type IdeaPlaceRow } from '@/hooks/useTripIdea';
 import type { PlacePriority } from '@/types';
 
@@ -32,6 +33,8 @@ function pluralPlaces(n: number): string {
 }
 
 export default function IdeaCardScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
   const id = idParam ? Number(idParam) : null;
@@ -219,7 +222,8 @@ export default function IdeaCardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -375,7 +379,8 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   error: {
-    color: '#b42318',
+    color: colors.dangerText,
     fontWeight: '600',
   },
-});
+  });
+}

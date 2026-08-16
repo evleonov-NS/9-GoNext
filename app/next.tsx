@@ -16,7 +16,8 @@ import { LinearGradientPlaceholder } from '@/components/LinearGradientPlaceholde
 import { PhotoGallery, promptPhotoSource, type PhotoSource } from '@/components/PhotoGallery';
 import { Screen } from '@/components/Screen';
 import { PLACE_CATEGORIES } from '@/constants/categories';
-import { colors, radii } from '@/constants/theme';
+import { useAppTheme, useThemedStyles } from '@/components/ThemeContext';
+import { radii, type AppColors } from '@/constants/theme';
 import { useNextPlace } from '@/hooks/useNextPlace';
 import { usePhotos } from '@/hooks/usePhotos';
 import type { TripPlaceRow } from '@/hooks/useTrip';
@@ -39,6 +40,8 @@ function visitDateLabel(iso: string | null): string {
 }
 
 export default function NextScreen() {
+  const { colors } = useAppTheme();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const {
     trip,
@@ -504,7 +507,8 @@ export default function NextScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -743,11 +747,12 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   error: {
-    color: '#b42318',
+    color: colors.dangerText,
     fontWeight: '600',
     flex: 1,
   },
   snack: {
     backgroundColor: colors.accentDark,
   },
-});
+  });
+}
